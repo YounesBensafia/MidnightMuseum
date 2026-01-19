@@ -1,0 +1,53 @@
+#version 330 core
+
+in vec3 Vcolor;
+in vec3 vPos;
+in vec3 vNormal;
+in vec2 vTexture;
+
+out vec4 color;
+
+uniform vec3 lightColor;
+uniform vec3 lightPos[6]; // Array of 6 light positions
+uniform int numLights;    // Number of active lights
+uniform vec3 viewPos;
+uniform sampler2D ourTexture;
+uniform int useTexture; // 0 = use material color, 1 = use texture
+uniform vec3 materialColor; // Material diffuse color
+
+void main()
+{
+	vec4 baseColor;
+	if (useTexture == 1) {
+		baseColor = texture(ourTexture, vTexture);
+	} else {
+		baseColor = vec4(materialColor, 1.0);
+	}
+	
+	// Ambient
+	float ambientIntens = 0.2;
+	vec3 ambient = lightColor * ambientIntens;
+	
+	vec3 totalDiffuse = vec3(0.0);
+	vec3 totalSpecular = vec3(0.0);
+	vec3 normal = normalize(vNormal);
+	vec3 viewDir = normalize(viewPos - vPos);
+	
+	// Calculate lighting contribution from each light
+	for (int i = 0; i < numLights; i++) {
+		// Diffuse
+		vec3 lightDir = normalize(lightPos[i] - vPos);
+		float diff = max(dot(normal, lightDir), 0.0);
+		float diffusIntens = 0.15;
+		totalDiffuse += diff * lightColor * diffusIntens;
+		
+		// Specular
+		float specIntens = 0.2;
+		vec3 reflectDir = reflect(-lightDir, normal);
+		float spec = pow(max(dot(viewDir, reflectDir), 0.0), 50);
+		totalSpecular += specIntens * spec * lightColor;
+	}
+	
+	vec3 lighting = ambient + totalDiffuse + totalSpecular;
+	color = vec4(lighting, 1.0) * baseColor;
+}

@@ -1,0 +1,24 @@
+# Build directories
+Projet/build/
+*.exe
+*.o
+*.obj
+
+# DLLs (exclude from git, but not the GLFW dll in libs)
+Projet/build/*.dll
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# IDE
+.vscode/
+.vs/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
