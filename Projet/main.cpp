@@ -6,6 +6,7 @@
 #include <vector>
 #include "shader/shader/shader.hpp"
 #include "model/objload.hpp"
+#include "model/fbxload.hpp"
 #include "include/Camera.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -23,6 +24,8 @@ float lastY = 240.0f;
 bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+bool flashlightOn = false;
+bool fKeyPressed = false;
 
 // Mouse callback
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -67,6 +70,16 @@ void processInput(GLFWwindow* window) {
         camera.processKeyboard(2, adjustedDeltaTime); // LEFT
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.processKeyboard(3, adjustedDeltaTime); // RIGHT
+    
+    // Toggle flashlight with F key
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
+        if (!fKeyPressed) {
+            flashlightOn = !flashlightOn;
+            fKeyPressed = true;
+        }
+    } else {
+        fKeyPressed = false;
+    }
 }
 
 GLuint textures[6]; // array of 6 textures
@@ -266,8 +279,10 @@ void InitTextures(void)
     // Load fossils bones texture
     textures[2] = loadTexture("model/bones.png");
     
+    // Load flashlight texture
+    textures[3] = loadTexture("model/Linterna_COLOR.jpg");
+    
     // Load additional textures (you can add more)
-    textures[3] = loadTexture("textures/tiles/tiles_0099_color_1k.jpg");
     textures[4] = loadTexture("textures/tiles/tiles_0099_color_1k.jpg");
     textures[5] = loadTexture("textures/tiles/tiles_0099_color_1k.jpg");
 }
@@ -312,8 +327,9 @@ int main()
     // Load multiple models
     printf("\n=== Loading Museum Models ===\n");
     Model carpetModel = loadModel("model/carpet.obj", true); // Regenerate UVs for proper tiling
-    ModelWithMaterial museumModel = loadModelWithMaterial("model/museum.obj");
-    Model fossilsModel = loadModel("model/fossils1.obj", false);
+    FBXModel showcaseModel = loadFBXModel("model/glass_showcase.glb");
+    FBXModel fossilsModel = loadFBXModel("model/fossils.glb");
+    ModelWithMaterial flashlightModel = loadModelWithMaterial("model/Linterna.obj");
     // Add more models here as you get them:
     // Model dinoSkullModel = loadModel("model/dino_skull.obj");
     // Model armorModel = loadModel("model/armor.obj");
@@ -331,6 +347,9 @@ int main()
     
     GLuint LightPosID = glGetUniformLocation(ShaderProgram, "lightPos");
     GLuint NumLightsID = glGetUniformLocation(ShaderProgram, "numLights");
+    GLuint SpotLightPosID = glGetUniformLocation(ShaderProgram, "spotLightPos");
+    GLuint SpotLightDirID = glGetUniformLocation(ShaderProgram, "spotLightDir");
+    GLuint SpotLightOnID = glGetUniformLocation(ShaderProgram, "spotLightOn");
     
     vec3 viewPos(0.0f, 2.0f, 5.0f);
     GLuint ViewPosID = glGetUniformLocation(ShaderProgram, "viewPos");
@@ -345,12 +364,12 @@ int main()
     
     // Corner lights at ceiling level - 2 per room positioned like lamps
     vec3 cornerLights[] = {
-        vec3(-12.0f, 7.5f, -12.0f),  // Main room - back left corner
-        vec3(12.0f, 7.5f, -12.0f),   // Main room - back right corner
-        vec3(-5.0f, 7.5f, -20.0f),   // Hallway - left side
-        vec3(5.0f, 7.5f, -20.0f),    // Hallway - right side
-        vec3(-10.0f, 7.5f, -31.0f),  // Second room - back left corner
-        vec3(10.0f, 7.5f, -31.0f)    // Second room - back right corner
+        vec3(-12.0f, 11.5f, -12.0f),  // Main room - back left corner
+        vec3(12.0f, 11.5f, -12.0f),   // Main room - back right corner
+        vec3(-5.0f, 11.5f, -20.0f),   // Hallway - left side
+        vec3(5.0f, 11.5f, -20.0f),    // Hallway - right side
+        vec3(-10.0f, 11.5f, -31.0f),  // Second room - back left corner
+        vec3(10.0f, 11.5f, -31.0f)    // Second room - back right corner
     };
     int numLights = 6;
 
@@ -385,6 +404,15 @@ int main()
         glUniform1i(NumLightsID, numLights);
         glUniform3fv(ViewPosID, 1, &viewPos[0]);
         
+        // Flashlight spotlight
+        glUniform1i(SpotLightOnID, flashlightOn ? 1 : 0);
+        if (flashlightOn) {
+            vec3 camPos = camera.getPosition();
+            vec3 camFront = camera.getFront();
+            glUniform3fv(SpotLightPosID, 1, &camPos[0]);
+            glUniform3fv(SpotLightDirID, 1, &camFront[0]);
+        }
+        
         // === DRAW MUSEUM ARCHITECTURE (Using Carpet Model) ===
         if (carpetModel.vertexCount > 0) {
             glBindVertexArray(carpetModel.VAO);
@@ -405,7 +433,7 @@ int main()
             
             // === CEILINGS ===
             mat4 HallCeiling = mat4(1.0f);
-            HallCeiling = translate(HallCeiling, vec3(0.0f, 8.0f, -19.0f));
+            HallCeiling = translate(HallCeiling, vec3(0.0f, 12.0f, -19.0f));
             HallCeiling = rotate(HallCeiling, radians(180.0f), vec3(1, 0, 0));
             HallCeiling = scale(HallCeiling, vec3(3.0f, 1.0f, 2.5f));
             mat4 HallCeilingMVP = Projection * View * HallCeiling;
@@ -418,7 +446,7 @@ int main()
             // === SECOND ROOM (Beyond hallway) ===
             // CEILING - Second Room
             mat4 Ceiling2 = mat4(1.0f);
-            Ceiling2 = translate(Ceiling2, vec3(0.0f, 8.0f, -28.0f));
+            Ceiling2 = translate(Ceiling2, vec3(0.0f, 12.0f, -28.0f));
             Ceiling2 = rotate(Ceiling2, radians(180.0f), vec3(1, 0, 0));
             Ceiling2 = scale(Ceiling2, vec3(6.0f, 1.0f, 5.0f));
             mat4 Ceiling2MVP = Projection * View * Ceiling2;
@@ -430,7 +458,7 @@ int main()
             
             // CEILING
             mat4 CeilingModel = mat4(1.0f);
-            CeilingModel = translate(CeilingModel, vec3(0.0f, 8.0f, 0.0f));
+            CeilingModel = translate(CeilingModel, vec3(0.0f, 12.0f, 0.0f));
             CeilingModel = rotate(CeilingModel, radians(180.0f), vec3(1, 0, 0)); // Flip
             CeilingModel = scale(CeilingModel, vec3(7.0f, 1.0f, 7.0f));
             mat4 CeilingMVP = Projection * View * CeilingModel;
@@ -746,61 +774,113 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
         }
         
+        // === DRAW FLASHLIGHT MODEL (if on) ===
+        if (flashlightModel.vertexCount > 0 && flashlightOn) {
+            glBindVertexArray(flashlightModel.VAO);
+            
+            // Disable depth testing so flashlight renders on top without clearing depth buffer
+            glDepthFunc(GL_ALWAYS);
+            
+            // Create a separate view-space model for the flashlight (weapon view model)
+            mat4 FlashlightModel = mat4(1.0f);
+            
+            // Position in view space (right, down, forward from camera origin)
+            FlashlightModel = translate(FlashlightModel, vec3(0.35f, -0.4f, -0.8f));
+            
+            // Rotate from facing upwards to facing forward
+            FlashlightModel = rotate(FlashlightModel, radians(-90.0f), vec3(1, 0, 0)); // Pitch down 90 degrees
+            
+            // Fine-tune orientation
+            FlashlightModel = rotate(FlashlightModel, radians(-15.0f), vec3(1, 0, 0)); // Pitch down slightly more
+            FlashlightModel = rotate(FlashlightModel, radians(10.0f), vec3(0, 1, 0));   // Yaw right slightly
+            
+            // Scale appropriately for view model
+            FlashlightModel = scale(FlashlightModel, vec3(0.1f, 0.1f, 0.1f));
+            
+            // Use only projection (no view matrix for first-person item)
+            mat4 FlashlightMVP = Projection * FlashlightModel;
+            
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &FlashlightMVP[0][0]);
+            glUniformMatrix4fv(ModelID, 1, GL_FALSE, &FlashlightModel[0][0]);
+            
+            // Render exactly like museum tables - with per-triangle materials
+            glUniform1i(UseTextureID, 0); // Use material colors
+            string currentMat = "";
+            for (size_t i = 0; i < flashlightModel.vertexCount; i += 3) {
+                if (i < flashlightModel.materialNames.size()) {
+                    string matName = flashlightModel.materialNames[i];
+                    if (matName != currentMat) {
+                        currentMat = matName;
+                        if (flashlightModel.materials.find(matName) != flashlightModel.materials.end()) {
+                            Material& mat = flashlightModel.materials[matName];
+                            glUniform3fv(MaterialColorID, 1, &mat.Kd[0]);
+                        }
+                    }
+                }
+                glDrawArrays(GL_TRIANGLES, i, 3);
+            }
+            
+            // Restore normal depth testing
+            glDepthFunc(GL_LESS);
+        }
+        
         // === DRAW FOSSILS MODEL ===
         if (fossilsModel.vertexCount > 0) {
             glBindVertexArray(fossilsModel.VAO);
             
             mat4 FossilModel = mat4(1.0f);
             FossilModel = translate(FossilModel, vec3(0.0f, 0.0f, 0.0f)); // Center of first room, on the floor
-            FossilModel = rotate(FossilModel, radians(45.0f), vec3(0, 1, 0)); // Rotate for better view
+            FossilModel = rotate(FossilModel, radians(-90.0f), vec3(1, 0, 0)); // Rotate to stand upright
+            FossilModel = rotate(FossilModel, radians(45.0f), vec3(0, 0, 1)); // Rotate for better view
             FossilModel = scale(FossilModel, vec3(0.005f, 0.005f, 0.005f)); // Scale down - model is very large
             mat4 FossilMVP = Projection * View * FossilModel;
             
             glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &FossilMVP[0][0]);
             glUniformMatrix4fv(ModelID, 1, GL_FALSE, &FossilModel[0][0]);
-            glBindTexture(GL_TEXTURE_2D, textures[2]); // bones texture
+            glActiveTexture(GL_TEXTURE0);
+            if (fossilsModel.textureID > 0) {
+                glBindTexture(GL_TEXTURE_2D, fossilsModel.textureID); // Use embedded GLB texture
+            } else {
+                glBindTexture(GL_TEXTURE_2D, textures[2]); // Fallback to bones texture
+            }
+            glUniform1i(TextureID, 0);
             glUniform1i(UseTextureID, 1); // Use texture
-            glDrawArrays(GL_TRIANGLES, 0, fossilsModel.vertexCount);
+            glDrawElements(GL_TRIANGLES, fossilsModel.indexCount, GL_UNSIGNED_INT, 0);
         }
         
-        // === DRAW MUSEUM TABLES WITH PROPER MATERIALS ===
-        if (museumModel.vertexCount > 0) {
-            glBindVertexArray(museumModel.VAO);
-            glUniform1i(UseTextureID, 0); // Use material colors
+        // === DRAW GLASS SHOWCASES ===
+        if (showcaseModel.vertexCount > 0) {
+            glBindVertexArray(showcaseModel.VAO);
             
-            // Table positions: 2 on left side, 2 on right side
-            vec3 tablePositions[] = {
-                vec3(-10.0f, 0.0f, -8.0f),  // Left front
-                vec3(-10.0f, 0.0f, 2.0f),   // Left back
-                vec3(10.0f, 0.0f, -8.0f),   // Right front
-                vec3(10.0f, 0.0f, 2.0f)     // Right back
+            // Showcase positions: 2 on left side, 2 on right side
+            vec3 showcasePositions[] = {
+                vec3(-10.0f, 1.0f, -8.0f),  // Left front (raised above floor)
+                vec3(-10.0f, 1.0f, 2.0f),   // Left back
+                vec3(10.0f, 1.0f, -8.0f),   // Right front
+                vec3(10.0f, 1.0f, 2.0f)     // Right back
             };
             
-            // Draw each table
+            // Draw each showcase
             for (int t = 0; t < 4; t++) {
                 mat4 Model = mat4(1.0f);
-                Model = translate(Model, tablePositions[t]);
+                Model = translate(Model, showcasePositions[t]);
                 Model = scale(Model, vec3(1.0f, 1.0f, 1.0f));
                 mat4 MVP = Projection * View * Model;
 
                 glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
                 glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Model[0][0]);
                 
-                // Draw with per-triangle materials
-                string currentMat = "";
-                for (size_t i = 0; i < museumModel.vertexCount; i += 3) {
-                    if (i < museumModel.materialNames.size()) {
-                        string matName = museumModel.materialNames[i];
-                        if (matName != currentMat) {
-                            currentMat = matName;
-                            if (museumModel.materials.find(matName) != museumModel.materials.end()) {
-                                Material& mat = museumModel.materials[matName];
-                                glUniform3fv(MaterialColorID, 1, &mat.Kd[0]);
-                            }
-                        }
-                    }
-                    glDrawArrays(GL_TRIANGLES, i, 3);
+                // Use embedded texture from GLB
+                glActiveTexture(GL_TEXTURE0);
+                if (showcaseModel.textureID > 0) {
+                    glBindTexture(GL_TEXTURE_2D, showcaseModel.textureID);
+                    glUniform1i(TextureID, 0);
+                    glUniform1i(UseTextureID, 1); // Use texture
+                } else {
+                    glUniform1i(UseTextureID, 0); // No texture
                 }
+                
+                glDrawElements(GL_TRIANGLES, showcaseModel.indexCount, GL_UNSIGNED_INT, 0);
             }
         }
         
@@ -813,10 +893,14 @@ int main()
     // Cleanup
     glDeleteVertexArrays(1, &carpetModel.VAO);
     glDeleteBuffers(1, &carpetModel.VBO);
-    glDeleteVertexArrays(1, &museumModel.VAO);
-    glDeleteBuffers(1, &museumModel.VBO);
+    glDeleteVertexArrays(1, &showcaseModel.VAO);
+    glDeleteBuffers(1, &showcaseModel.VBO);
+    glDeleteBuffers(1, &showcaseModel.EBO);
     glDeleteVertexArrays(1, &fossilsModel.VAO);
     glDeleteBuffers(1, &fossilsModel.VBO);
+    glDeleteBuffers(1, &fossilsModel.EBO);
+    glDeleteVertexArrays(1, &flashlightModel.VAO);
+    glDeleteBuffers(1, &flashlightModel.VBO);
     glDeleteProgram(ShaderProgram);
 
     glfwDestroyWindow(window);
