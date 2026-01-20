@@ -3,8 +3,12 @@
 
 #include "Application.hpp"
 #include "ResourceManager.hpp"
+#include "Room1.hpp"
+#include "Hallway.hpp"
+#include "Room2.hpp"
 #include <vector>
 #include <glm/glm.hpp>
+#include <memory>
 
 class MuseumScene {
 public:
@@ -19,12 +23,13 @@ private:
     Application& app;
     ResourceManager& rm;
 
-    // Game Objects / Models
-    Model carpetModel;
-    FBXModel showcaseModel;
-    FBXModel fossilsModel;
-    FBXModel effigyModel;
-    FBXModel buddhaModel;
+    // Room components
+    std::unique_ptr<Room1> room1;
+    std::unique_ptr<Hallway> hallway;
+    std::unique_ptr<Room2> room2;
+
+    // Shared models
+    Model carpetModel;  // Floor that spans all rooms
     ModelWithMaterial flashlightModel;
 
     // Lighting
@@ -37,9 +42,7 @@ private:
 
     // Internal methods
     void checkCollisions();
-    bool checkFossilCollision(glm::vec3 newPos);
-    bool checkWallCollision(glm::vec3 newPos);
-    bool checkTableCollision(glm::vec3 newPos);
+    void renderFlashlightModel(const glm::mat4& view, const glm::mat4& projection);
     
     // Initializers
     void initLights();
