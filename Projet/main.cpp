@@ -329,6 +329,7 @@ int main()
     Model carpetModel = loadModel("model/carpet.obj", true); // Regenerate UVs for proper tiling
     FBXModel showcaseModel = loadFBXModel("model/glass_showcase.glb");
     FBXModel fossilsModel = loadFBXModel("model/fossils.glb");
+    FBXModel effigyModel = loadFBXModel("model/effigy.glb");
     ModelWithMaterial flashlightModel = loadModelWithMaterial("model/Linterna.obj");
     // Add more models here as you get them:
     // Model dinoSkullModel = loadModel("model/dino_skull.obj");
@@ -884,6 +885,31 @@ int main()
             }
         }
         
+        // === DRAW EFFIGY ON SHOWCASE ===
+        if (effigyModel.vertexCount > 0) {
+            glBindVertexArray(effigyModel.VAO);
+            
+            mat4 EffigyModel = mat4(1.0f);
+            EffigyModel = translate(EffigyModel, vec3(-10.0f, 4.0f, -8.0f)); // On top of left front showcase, raised higher
+            EffigyModel = rotate(EffigyModel, radians(120.0f), vec3(0, 1, 0)); // Rotate towards inside of room
+            EffigyModel = rotate(EffigyModel, radians(-90.0f), vec3(1, 0, 0)); // Stand upright
+            EffigyModel = rotate(EffigyModel, radians(-90.0f), vec3(0, 1, 0)); // Rotate to portrait orientation
+            EffigyModel = scale(EffigyModel, vec3(1.2f, 1.2f, 1.2f)); // Bigger scale
+            mat4 EffigyMVP = Projection * View * EffigyModel;
+            
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &EffigyMVP[0][0]);
+            glUniformMatrix4fv(ModelID, 1, GL_FALSE, &EffigyModel[0][0]);
+            glActiveTexture(GL_TEXTURE0);
+            if (effigyModel.textureID > 0) {
+                glBindTexture(GL_TEXTURE_2D, effigyModel.textureID); // Use embedded GLB texture
+            } else {
+                glBindTexture(GL_TEXTURE_2D, textures[2]); // Fallback texture
+            }
+            glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1); // Use texture
+            glDrawElements(GL_TRIANGLES, effigyModel.indexCount, GL_UNSIGNED_INT, 0);
+        }
+        
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
@@ -899,6 +925,9 @@ int main()
     glDeleteVertexArrays(1, &fossilsModel.VAO);
     glDeleteBuffers(1, &fossilsModel.VBO);
     glDeleteBuffers(1, &fossilsModel.EBO);
+    glDeleteVertexArrays(1, &effigyModel.VAO);
+    glDeleteBuffers(1, &effigyModel.VBO);
+    glDeleteBuffers(1, &effigyModel.EBO);
     glDeleteVertexArrays(1, &flashlightModel.VAO);
     glDeleteBuffers(1, &flashlightModel.VBO);
     glDeleteProgram(ShaderProgram);
