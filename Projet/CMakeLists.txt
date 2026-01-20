@@ -24,6 +24,6 @@ link_directories(${GLFW_DIR}/lib-mingw-w64)
 link_directories(${ASSIMP_DIR}/lib)
 
 # Add executable with main.cpp and glad.c
-add_executable(main main.cpp src/glad.c shader/shader/shader.cpp model/objload.cpp)
+add_executable(main main.cpp src/Application.cpp src/ResourceManager.cpp src/MuseumScene.cpp src/fbxload.cpp src/glad.c shader/shader/shader.cpp model/objload.cpp)
 
 target_link_libraries(main glfw3 opengl32 gdi32 assimp)

@@ -1,8 +1,5 @@
 #include "../model/fbxload.hpp"
-#define STB_IMAGE_IMPLEMENTATION
 #include "../include/stb_image.h"
-
-extern "C" const char* stbi_failure_reason(void);
 
 FBXModel loadFBXModel(const char* filepath) {
     FBXModel model;
@@ -163,11 +160,6 @@ FBXModel loadFBXModel(const char* filepath) {
                             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
                             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
                             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                            
-                            // Enable anisotropic filtering for smoother textures
-                            GLfloat maxAnisotropy;
-                            glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
-                            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
                         }
                     }
                 }
@@ -203,6 +195,20 @@ FBXModel loadFBXModel(const char* filepath) {
     glBindVertexArray(0);
     
     std::cout << "Loaded FBX model: " << filepath << " (" << model.vertexCount << " vertices, " << model.indexCount << " indices)" << std::endl;
+    
+    return model;
+}
+
+// Load model with clamped texture (no repeat) - for paintings/artwork
+FBXModel loadFBXModelClamped(const char* filepath) {
+    FBXModel model = loadFBXModel(filepath);
+    
+    // Re-bind texture and change wrapping to clamp
+    if (model.textureID > 0) {
+        glBindTexture(GL_TEXTURE_2D, model.textureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
     
     return model;
 }
