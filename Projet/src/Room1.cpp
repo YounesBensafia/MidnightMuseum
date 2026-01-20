@@ -26,6 +26,7 @@ void Room1::init() {
     fossilsModel = rm.loadFBXModel("model/fossils.glb");
     effigyModel = rm.loadFBXModel("model/effigy.glb");
     ropeBarrierModel = rm.loadFBXModel("model/rope_barrier.glb");
+    coffinModel = rm.loadFBXModel("model/egyptian_coffin.glb");
     
     initPromptUI();
 }
@@ -87,8 +88,12 @@ void Room1::update(float dt, GLFWwindow* window) {
     float distanceToEffigy = length(vec2(cameraPos.x - effigyPosition.x, cameraPos.z - effigyPosition.z));
     playerNearEffigy = (distanceToEffigy < interactionDistance);
     
+    // Check if player is near the coffin
+    float distanceToCoffin = length(vec2(cameraPos.x - coffinPosition.x, cameraPos.z - coffinPosition.z));
+    playerNearCoffin = (distanceToCoffin < interactionDistance);
+    
     // Toggle effigy animation with E key when near
-    if (playerNearEffigy) {
+    if (playerNearEffigy && !playerNearCoffin) {
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
             if (!eKeyPressed) {
                 effigyAnimating = !effigyAnimating;
@@ -100,7 +105,20 @@ void Room1::update(float dt, GLFWwindow* window) {
         }
     }
     
-    // Update floating animation
+    // Toggle coffin animation with E key when near
+    if (playerNearCoffin && !playerNearEffigy) {
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+            if (!eKeyPressed) {
+                coffinAnimating = !coffinAnimating;
+                printf("Coffin animation: %s\n", coffinAnimating ? "ON" : "OFF");
+                eKeyPressed = true;
+            }
+        } else {
+            eKeyPressed = false;
+        }
+    }
+    
+    // Update floating animation for effigy
     if (effigyAnimating) {
         effigyAnimTime += dt;
         // Smooth sine wave for floating effect
@@ -111,6 +129,20 @@ void Room1::update(float dt, GLFWwindow* window) {
         if (abs(effigyFloatOffset) < 0.01f) {
             effigyFloatOffset = 0.0f;
             effigyAnimTime = 0.0f;
+        }
+    }
+    
+    // Update floating animation for coffin
+    if (coffinAnimating) {
+        coffinAnimTime += dt;
+        // Smooth sine wave for floating effect
+        coffinFloatOffset = sin(coffinAnimTime * 2.0f) * 0.3f; // Floats up/down 0.3 units
+    } else {
+        // Gradually return to original position
+        coffinFloatOffset *= 0.9f;
+        if (abs(coffinFloatOffset) < 0.01f) {
+            coffinFloatOffset = 0.0f;
+            coffinAnimTime = 0.0f;
         }
     }
 }
@@ -127,6 +159,7 @@ void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderShowcases(view, projection, shaderProgram);
     renderFossils(view, projection, shaderProgram);
     renderRopeBarriers(view, projection, shaderProgram);
+    renderCoffin(view, projection, shaderProgram);
     renderEffigy(view, projection, shaderProgram);
     renderEKeyPrompt(projection);
 }
@@ -382,6 +415,41 @@ void Room1::renderRopeBarriers(const mat4& view, const mat4& projection, GLuint 
     }
 }
 
+void Room1::renderCoffin(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (coffinModel.vertexCount > 0) {
+        glBindVertexArray(coffinModel.VAO);
+        
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        
+        // Place coffin on top of left middle table at (-17.0f, 1.0f, 10.0f)
+        mat4 CoffinModel = mat4(1.0f);
+        CoffinModel = translate(CoffinModel, vec3(-17.0f, 4.0f + coffinFloatOffset, 10.0f));  // Apply floating animation
+    
+        CoffinModel = rotate(CoffinModel, radians(270.0f), vec3(0, 0, 1));  // Flip vertically
+        CoffinModel = rotate(CoffinModel, radians(-10.0f), vec3(0, 1, 0));
+        CoffinModel = rotate(CoffinModel, radians(-50.0f), vec3(1, 0, 0));
+        CoffinModel = rotate(CoffinModel, radians(-20.0f), vec3(0, 1, 0));
+        CoffinModel = rotate(CoffinModel, radians(-20.0f), vec3(0, 0, 1));
+        CoffinModel = rotate(CoffinModel, radians(20.0f), vec3(0, 1, 0));
+
+        CoffinModel = scale(CoffinModel, vec3(0.5f, 0.5f, 0.5f));  // Much bigger
+        mat4 CoffinMVP = projection * view * CoffinModel;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &CoffinMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &CoffinModel[0][0]);
+        
+        if (coffinModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, coffinModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, coffinModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
 void Room1::renderEffigy(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     if (effigyModel.vertexCount > 0) {
         glBindVertexArray(effigyModel.VAO);
@@ -415,7 +483,7 @@ void Room1::renderEffigy(const mat4& view, const mat4& projection, GLuint shader
 }
 
 void Room1::renderEKeyPrompt(const mat4& projection) {
-    if (!playerNearEffigy || promptVAO == 0) return;
+    if ((!playerNearEffigy && !playerNearCoffin) || promptVAO == 0) return;
     
     // Get shader program from ResourceManager
     GLuint shaderProgram = rm.getShader("mainShader");

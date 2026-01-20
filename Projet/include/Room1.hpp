@@ -27,6 +27,7 @@ private:
     FBXModel fossilsModel;
     FBXModel effigyModel;
     FBXModel ropeBarrierModel;
+    FBXModel coffinModel;
     
     // Helper methods
     void renderWalls(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
@@ -35,6 +36,7 @@ private:
     void renderFossils(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderEffigy(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderRopeBarriers(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderCoffin(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderEKeyPrompt(const glm::mat4& projection);
     
     bool checkFossilCollision(const glm::vec3& newPos);
@@ -49,6 +51,13 @@ private:
     glm::vec3 effigyPosition = glm::vec3(-17.5f, 4.0f, -7.0f);
     float interactionDistance = 3.0f;
     bool playerNearEffigy = false;
+    
+    // Coffin animation state
+    bool coffinAnimating = false;
+    float coffinFloatOffset = 0.0f;
+    float coffinAnimTime = 0.0f;
+    glm::vec3 coffinPosition = glm::vec3(-17.0f, 4.0f, 10.0f);
+    bool playerNearCoffin = false;
     
     // E key prompt UI
     GLuint promptVAO = 0;
