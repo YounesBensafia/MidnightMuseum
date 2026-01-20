@@ -21,6 +21,11 @@ void Room2::init() {
     buddhaModel = rm.loadFBXModel("model/buddha_triad.glb");
 }
 
+void Room2::update(float dt, GLFWwindow* window) {
+    // Room2-specific interactions go here
+    // Example: Buddha glow effect, incense smoke animation, etc.
+}
+
 void Room2::render(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     renderFloorAndCeiling(view, projection, shaderProgram);
     renderWalls(view, projection, shaderProgram);

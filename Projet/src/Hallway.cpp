@@ -20,6 +20,11 @@ void Hallway::init() {
     carpetModel = rm.loadModel("model/carpet.obj", true);
 }
 
+void Hallway::update(float dt, GLFWwindow* window) {
+    // Hallway-specific interactions go here
+    // Example: Flickering lights, sound triggers, etc.
+}
+
 void Hallway::render(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     renderFloorAndCeiling(view, projection, shaderProgram);
     renderWalls(view, projection, shaderProgram);

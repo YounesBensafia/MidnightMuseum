@@ -5,6 +5,7 @@
 #include "../include/ResourceManager.hpp"
 
 class Application;
+struct GLFWwindow;
 
 class Hallway {
 public:
@@ -12,6 +13,7 @@ public:
     ~Hallway();
     
     void init();
+    void update(float dt, GLFWwindow* window);
     void render(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     bool checkCollision(const glm::vec3& newPos);
     

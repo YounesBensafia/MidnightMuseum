@@ -69,6 +69,11 @@ void MuseumScene::update(float dt) {
         fKeyPressed = false;
     }
 
+    // Update each room (allows room-specific interactions)
+    room1->update(dt, app.getWindow());
+    hallway->update(dt, app.getWindow());
+    room2->update(dt, app.getWindow());
+
     checkCollisions();
 }
 

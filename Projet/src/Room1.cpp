@@ -23,6 +23,23 @@ void Room1::init() {
     effigyModel = rm.loadFBXModel("model/effigy.glb");
 }
 
+void Room1::update(float dt, GLFWwindow* window) {
+    // Room1-specific interactions go here
+    // Example: Toggle room-specific lights, trigger animations, etc.
+    
+    // Example key handler (E key):
+    // static bool eKeyPressed = false;
+    // if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+    //     if (!eKeyPressed) {
+    //         // Do something specific to Room1
+    //         printf("Room1: E key pressed!\n");
+    //         eKeyPressed = true;
+    //     }
+    // } else {
+    //     eKeyPressed = false;
+    // }
+}
+
 void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
     GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
