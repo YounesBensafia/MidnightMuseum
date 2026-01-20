@@ -27,6 +27,7 @@ struct FBXModel {
     size_t vertexCount;
     size_t indexCount;
     GLuint textureID;  // Embedded texture from GLB
+    glm::vec3 baseColor; // Base color extracted from texture or material
     std::string name;
 };
 
@@ -36,6 +37,7 @@ FBXModel loadFBXModel(const char* filepath) {
     model.vertexCount = 0;
     model.indexCount = 0;
     model.textureID = 0;
+    model.baseColor = glm::vec3(0.7f, 0.7f, 0.7f); // Default gray
     
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(filepath, 
@@ -107,6 +109,13 @@ FBXModel loadFBXModel(const char* filepath) {
     // Load embedded texture if available
     if (scene->HasMaterials() && scene->mNumMaterials > 0) {
         aiMaterial* material = scene->mMaterials[0];
+        
+        // Try to get base color from material
+        aiColor3D diffuseColor(0.7f, 0.7f, 0.7f);
+        if (material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColor) == AI_SUCCESS) {
+            model.baseColor = glm::vec3(diffuseColor.r, diffuseColor.g, diffuseColor.b);
+            std::cout << "Extracted base color: (" << diffuseColor.r << ", " << diffuseColor.g << ", " << diffuseColor.b << ")" << std::endl;
+        }
         
         // Check for embedded texture
         if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0) {

@@ -48,6 +48,94 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     camera.processMouseScroll(yoffset);
 }
 
+// Collision detection for fossil
+bool checkFossilCollision(vec3 newPos) {
+    vec3 fossilPos = vec3(0.0f, 0.0f, 0.0f);
+    float fossilRadius = 2.5f; // Collision radius around the fossil
+    
+    float distance = length(vec2(newPos.x - fossilPos.x, newPos.z - fossilPos.z));
+    return distance < fossilRadius;
+}
+
+// Collision detection for walls
+bool checkWallCollision(vec3 newPos) {
+    float wallMargin = 0.5f;
+    
+    // === MAIN ROOM WALLS (room extends from -14 to 14 in both x and z) ===
+    
+    // South wall at z = 14
+    if (newPos.z > 14.0f - wallMargin) return true;
+    
+    // East wall at x = 14
+    if (newPos.x > 14.0f - wallMargin) return true;
+    
+    // West wall at x = -14
+    if (newPos.x < -14.0f + wallMargin) return true;
+    
+    // North wall at z = -14 with doorway opening from x = -4 to x = 4
+    if (newPos.z < -14.0f + wallMargin && newPos.z > -15.0f) {
+        // If outside doorway opening, block
+        if (newPos.x < -4.0f || newPos.x > 4.0f) {
+            return true;
+        }
+    }
+    
+    // === HALLWAY SIDE WALLS (x = ±12 from z = -15 to z = -22) ===
+    if (newPos.z < -15.0f && newPos.z > -22.0f) {
+        // East hallway wall at x = 12
+        if (newPos.x > 12.0f - wallMargin) return true;
+        
+        // West hallway wall at x = -12
+        if (newPos.x < -12.0f + wallMargin) return true;
+    }
+    
+    // === SECOND ROOM WALLS ===
+    if (newPos.z < -22.0f) {
+        // Second room north wall at z = -33 (back wall with buddha)
+        if (newPos.z < -37.0f) return true;
+        
+        // Second room east wall at x = 12
+        if (newPos.x > 12.0f - wallMargin) return true;
+        
+        // Second room west wall at x = -12
+        if (newPos.x < -12.0f + wallMargin) return true;
+        
+        // Second room south wall with doorway at z = -23 (opening from x = -3 to x = 3)
+        if (newPos.z > -23.0f - wallMargin && newPos.z < -22.0f) {
+            // If outside doorway opening, block
+            if (newPos.x < -3.0f || newPos.x > 3.0f) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+// Collision detection for tables
+bool checkTableCollision(vec3 newPos) {
+    // Table positions
+    vec3 tablePositions[] = {
+        vec3(-10.0f, 1.0f, -10.0f),  // Left front
+        vec3(-10.0f, 1.0f, 0.0f),    // Left middle
+        vec3(-10.0f, 1.0f, 10.0f),   // Left back
+        vec3(10.0f, 1.0f, -10.0f),   // Right front
+        vec3(10.0f, 1.0f, 0.0f),     // Right middle
+        vec3(10.0f, 1.0f, 10.0f)     // Right back
+    };
+    
+    float tableRadius = 2.0f; // Collision radius around each table
+    
+    for (int i = 0; i < 6; i++) {
+        float distance = length(vec2(newPos.x - tablePositions[i].x, newPos.z - tablePositions[i].z));
+        if (distance < tableRadius) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 // Process input
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -62,6 +150,9 @@ void processInput(GLFWwindow* window) {
     
     float adjustedDeltaTime = deltaTime * speedMultiplier;
     
+    // Store old position for collision check
+    vec3 oldPos = camera.position;
+    
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.processKeyboard(0, adjustedDeltaTime); // FORWARD
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -70,6 +161,11 @@ void processInput(GLFWwindow* window) {
         camera.processKeyboard(2, adjustedDeltaTime); // LEFT
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.processKeyboard(3, adjustedDeltaTime); // RIGHT
+    
+    // Check for collisions and revert if colliding
+    if (checkFossilCollision(camera.position) || checkWallCollision(camera.position) || checkTableCollision(camera.position)) {
+        camera.position = oldPos;
+    }
     
     // Toggle flashlight with F key
     if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
@@ -330,6 +426,7 @@ int main()
     FBXModel showcaseModel = loadFBXModel("model/glass_showcase.glb");
     FBXModel fossilsModel = loadFBXModel("model/fossils.glb");
     FBXModel effigyModel = loadFBXModel("model/effigy.glb");
+    FBXModel buddhaModel = loadFBXModel("model/buddha_triad.glb");
     ModelWithMaterial flashlightModel = loadModelWithMaterial("model/Linterna.obj");
     // Add more models here as you get them:
     // Model dinoSkullModel = loadModel("model/dino_skull.obj");
@@ -853,16 +950,18 @@ int main()
         if (showcaseModel.vertexCount > 0) {
             glBindVertexArray(showcaseModel.VAO);
             
-            // Showcase positions: 2 on left side, 2 on right side
+            // Showcase positions: 3 on left side, 3 on right side
             vec3 showcasePositions[] = {
-                vec3(-10.0f, 1.0f, -8.0f),  // Left front (raised above floor)
-                vec3(-10.0f, 1.0f, 2.0f),   // Left back
-                vec3(10.0f, 1.0f, -8.0f),   // Right front
-                vec3(10.0f, 1.0f, 2.0f)     // Right back
+                vec3(-10.0f, 1.0f, -10.0f),  // Left front (raised above floor)
+                vec3(-10.0f, 1.0f, 0.0f),    // Left middle
+                vec3(-10.0f, 1.0f, 10.0f),   // Left back
+                vec3(10.0f, 1.0f, -10.0f),   // Right front
+                vec3(10.0f, 1.0f, 0.0f),     // Right middle
+                vec3(10.0f, 1.0f, 10.0f)     // Right back
             };
             
             // Draw each showcase
-            for (int t = 0; t < 4; t++) {
+            for (int t = 0; t < 6; t++) {
                 mat4 Model = mat4(1.0f);
                 Model = translate(Model, showcasePositions[t]);
                 Model = scale(Model, vec3(1.0f, 1.0f, 1.0f));
@@ -885,12 +984,43 @@ int main()
             }
         }
         
+        // === DRAW BUDDHA ON BACK WALL OF SECOND ROOM ===
+        if (buddhaModel.vertexCount > 0) {
+            glBindVertexArray(buddhaModel.VAO);
+            
+            mat4 BuddhaModel = mat4(1.0f);
+            BuddhaModel = translate(BuddhaModel, vec3(-11.5f, 6.0f, -30.5f)); // Centered on back wall, raised higher
+            BuddhaModel = rotate(BuddhaModel, radians(100.0f), vec3(0, 0, 1)); // Rotate 90 degrees on Z axis
+            BuddhaModel = rotate(BuddhaModel, radians(57.0f), vec3(1, 0, 0));
+            BuddhaModel = scale(BuddhaModel, vec3(3.0f, 3.0f, 3.0f)); // Large scale
+            mat4 BuddhaMVP = Projection * View * BuddhaModel;
+            
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &BuddhaMVP[0][0]);
+            glUniformMatrix4fv(ModelID, 1, GL_FALSE, &BuddhaModel[0][0]);
+            
+            // Use base color from embedded texture instead of full texture mapping
+            if (buddhaModel.textureID > 0) {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, buddhaModel.textureID);
+                glUniform1i(TextureID, 0);
+                glUniform1i(UseTextureID, 0); // Don't use texture mapping, just material color
+                
+                // Set a solid color based on texture's average/base color
+                glUniform3fv(MaterialColorID, 1, &buddhaModel.baseColor[0]);
+            } else {
+                glUniform1i(UseTextureID, 0);
+                glUniform3f(MaterialColorID, 0.7f, 0.6f, 0.5f); // Default beige/stone color
+            }
+            
+            glDrawElements(GL_TRIANGLES, buddhaModel.indexCount, GL_UNSIGNED_INT, 0);
+        }
+        
         // === DRAW EFFIGY ON SHOWCASE ===
         if (effigyModel.vertexCount > 0) {
             glBindVertexArray(effigyModel.VAO);
             
             mat4 EffigyModel = mat4(1.0f);
-            EffigyModel = translate(EffigyModel, vec3(-10.0f, 4.0f, -8.0f)); // On top of left front showcase, raised higher
+            EffigyModel = translate(EffigyModel, vec3(-10.5f, 4.0f, -10.0f)); // On top of left front showcase, raised higher
             EffigyModel = rotate(EffigyModel, radians(120.0f), vec3(0, 1, 0)); // Rotate towards inside of room
             EffigyModel = rotate(EffigyModel, radians(-90.0f), vec3(1, 0, 0)); // Stand upright
             EffigyModel = rotate(EffigyModel, radians(-90.0f), vec3(0, 1, 0)); // Rotate to portrait orientation
@@ -928,6 +1058,9 @@ int main()
     glDeleteVertexArrays(1, &effigyModel.VAO);
     glDeleteBuffers(1, &effigyModel.VBO);
     glDeleteBuffers(1, &effigyModel.EBO);
+    glDeleteVertexArrays(1, &buddhaModel.VAO);
+    glDeleteBuffers(1, &buddhaModel.VBO);
+    glDeleteBuffers(1, &buddhaModel.EBO);
     glDeleteVertexArrays(1, &flashlightModel.VAO);
     glDeleteBuffers(1, &flashlightModel.VBO);
     glDeleteProgram(ShaderProgram);
