@@ -196,4 +196,18 @@ FBXModel loadFBXModel(const char* filepath) {
     return model;
 }
 
+// Load model with clamped texture (no repeat) - for paintings/artwork
+FBXModel loadFBXModelClamped(const char* filepath) {
+    FBXModel model = loadFBXModel(filepath);
+    
+    // Re-bind texture and change wrapping to clamp
+    if (model.textureID > 0) {
+        glBindTexture(GL_TEXTURE_2D, model.textureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
+    
+    return model;
+}
+
 #endif

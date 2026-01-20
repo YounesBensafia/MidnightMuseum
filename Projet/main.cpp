@@ -26,6 +26,11 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 bool flashlightOn = false;
 bool fKeyPressed = false;
+float verticalVelocity = 0.0f;
+bool isJumping = false;
+float gravity = -15.0f;
+float jumpStrength = 6.0f;
+float groundLevel = 2.0f;
 
 // Mouse callback
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -162,8 +167,27 @@ void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.processKeyboard(3, adjustedDeltaTime); // RIGHT
     
+    // Jump with space key
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !isJumping) {
+        verticalVelocity = jumpStrength;
+        isJumping = true;
+    }
+    
+    // Apply gravity and update vertical position
+    if (isJumping) {
+        verticalVelocity += gravity * deltaTime;
+        camera.position.y += verticalVelocity * deltaTime;
+        
+        // Check if landed
+        if (camera.position.y <= groundLevel) {
+            camera.position.y = groundLevel;
+            verticalVelocity = 0.0f;
+            isJumping = false;
+        }
+    }
+    
     // Check for collisions and revert if colliding
-    if (checkFossilCollision(camera.position) || checkWallCollision(camera.position) || checkTableCollision(camera.position)) {
+    if (checkFossilCollision(camera.position) || /*checkWallCollision(camera.position) ||*/ checkTableCollision(camera.position)) {
         camera.position = oldPos;
     }
     
