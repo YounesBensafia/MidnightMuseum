@@ -31,6 +31,11 @@ public:
     glm::mat4 getViewMatrix() {
         return glm::lookAt(position, position + front, up);
     }
+    
+    glm::vec3 getPosition() { return position; }
+    glm::vec3 getFront() { return front; }
+    glm::vec3 getRight() { return right; }
+    glm::vec3 getUp() { return up; }
 
     void processKeyboard(int direction, float deltaTime) {
         float velocity = movementSpeed * deltaTime;
