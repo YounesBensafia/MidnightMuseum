@@ -26,6 +26,7 @@ private:
     FBXModel showcaseModel;
     FBXModel fossilsModel;
     FBXModel effigyModel;
+    FBXModel ropeBarrierModel;
     
     // Helper methods
     void renderWalls(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
@@ -33,8 +34,24 @@ private:
     void renderShowcases(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderFossils(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderEffigy(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderRopeBarriers(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderEKeyPrompt(const glm::mat4& projection);
     
     bool checkFossilCollision(const glm::vec3& newPos);
     bool checkTableCollision(const glm::vec3& newPos);
     bool checkWallCollision(const glm::vec3& newPos);
+    
+    // Animation state
+    bool effigyAnimating = false;
+    bool eKeyPressed = false;
+    float effigyFloatOffset = 0.0f;
+    float effigyAnimTime = 0.0f;
+    glm::vec3 effigyPosition = glm::vec3(-17.5f, 4.0f, -7.0f);
+    float interactionDistance = 3.0f;
+    bool playerNearEffigy = false;
+    
+    // E key prompt UI
+    GLuint promptVAO = 0;
+    GLuint promptVBO = 0;
+    void initPromptUI();
 };
