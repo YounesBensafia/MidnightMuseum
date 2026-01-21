@@ -95,7 +95,9 @@ void MuseumScene::checkCollisions() {
     }
     
     if (collision) {
-        camera.position = lastValidPos;
+        // Only reset X and Z, keep the Y height
+        camera.position.x = lastValidPos.x;
+        camera.position.z = lastValidPos.z;
     } else {
         lastValidPos = camera.position;
     }

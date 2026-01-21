@@ -23,11 +23,14 @@ private:
     
     Model carpetModel;
     FBXModel displayCabinetModel;
+    FBXModel smallFossilModel;
+    FBXModel smallFossil2Model;
     
     // Helper methods
     void renderWalls(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderFloorAndCeiling(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderDisplayCabinets(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderSmallFossil(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     
     bool checkWallCollision(const glm::vec3& newPos);
 };

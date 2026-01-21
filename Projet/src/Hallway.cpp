@@ -19,6 +19,8 @@ void Hallway::init() {
     // Load carpet model for walls/floor/ceiling
     carpetModel = rm.loadModel("model/carpet.obj", true);
     displayCabinetModel = rm.loadFBXModel("model/cabinet2.glb");
+    smallFossilModel = rm.loadFBXModel("model/small_fossil1.glb");
+    smallFossil2Model = rm.loadFBXModel("model/small_fossil2.glb");
 }
 
 void Hallway::update(float dt, GLFWwindow* window) {
@@ -30,6 +32,7 @@ void Hallway::render(const mat4& view, const mat4& projection, GLuint shaderProg
     renderFloorAndCeiling(view, projection, shaderProgram);
     renderWalls(view, projection, shaderProgram);
     renderDisplayCabinets(view, projection, shaderProgram);
+    renderSmallFossil(view, projection, shaderProgram);
 }
 
 void Hallway::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLuint shaderProgram) {
@@ -176,3 +179,54 @@ bool Hallway::checkWallCollision(const vec3& newPos) {
     
     return false;
 }
+
+void Hallway::renderSmallFossil(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+    GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+    GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+    GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+    
+    if (smallFossilModel.vertexCount > 0) {
+        glBindVertexArray(smallFossilModel.VAO);
+        
+        // Place small fossil inside the east cabinet (same position initially)
+        mat4 FossilModel = mat4(1.0f);
+        FossilModel = translate(FossilModel, vec3(5.5f, 3.0f, -18.5f));  // Same as east cabinet
+        FossilModel = rotate(FossilModel, radians(90.0f), vec3(0, 1, 0));  // Face into hallway
+        FossilModel = scale(FossilModel, vec3(1.5f, 1.5f, 1.5f));  // Scaled up to see it
+        mat4 FossilMVP = projection * view * FossilModel;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &FossilMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &FossilModel[0][0]);
+        
+        if (smallFossilModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, smallFossilModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, smallFossilModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+    
+    // Render small_fossil2 in the west cabinet
+    if (smallFossil2Model.vertexCount > 0) {
+        glBindVertexArray(smallFossil2Model.VAO);
+        
+        // Place small fossil2 inside the west cabinet (mirrored position)
+        mat4 Fossil2Model = mat4(1.0f);
+        Fossil2Model = translate(Fossil2Model, vec3(-5.5f, 2.5f, -18.5f));  // West cabinet position
+        Fossil2Model = rotate(Fossil2Model, radians(90.0f), vec3(0, 1, 0));  // Face into hallway
+        Fossil2Model = scale(Fossil2Model, vec3(10.0f, 10.0f, 10.0f));  // Same scale
+        mat4 Fossil2MVP = projection * view * Fossil2Model;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Fossil2MVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Fossil2Model[0][0]);
+        
+        if (smallFossil2Model.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, smallFossil2Model.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, smallFossil2Model.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
