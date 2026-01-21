@@ -29,6 +29,7 @@ void Hallway::init() {
     displayCabinetModel = rm.loadFBXModel("model/cabinet2.glb");
     smallFossilModel = rm.loadFBXModel("model/small_fossil1.glb");
     smallFossil2Model = rm.loadFBXModel("model/small_fossil2.glb");
+    spotlightModel = rm.loadFBXModel("model/spotlight.glb");
     
     initPromptUI();
 }
@@ -84,6 +85,7 @@ void Hallway::render(const mat4& view, const mat4& projection, GLuint shaderProg
     renderWalls(view, projection, shaderProgram);
     renderDisplayCabinets(view, projection, shaderProgram);
     renderSmallFossil(view, projection, shaderProgram);
+    renderCabinetSpotlights(view, projection, shaderProgram);
     renderIKeyPrompt(projection);
 }
 
@@ -329,6 +331,10 @@ void Hallway::enterInspectionMode(int cabinetIndex) {
     inspectionRotationY = 0.0f;
     inspectionRotationX = 0.0f;
     
+    // Activate spotlight for this cabinet
+    cabinetSpotlights[cabinetIndex] = true;
+    printf("Cabinet spotlight %d activated!\n", cabinetIndex);
+    
     // Save current camera state
     Camera& camera = app.getCamera();
     savedCameraPos = camera.position;
@@ -515,4 +521,64 @@ void Hallway::renderIKeyPrompt(const mat4& projection) {
     
     glBindVertexArray(0);
     glDepthFunc(oldDepthFunc);
+}
+
+void Hallway::renderCabinetSpotlights(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (spotlightModel.vertexCount <= 0) return;
+    
+    glBindVertexArray(spotlightModel.VAO);
+    
+    GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+    GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+    GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+    GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+    
+    // Cabinet positions (same as in renderDisplayCabinets)
+    vec3 cabinetPositions[] = {
+        vec3(5.5f, 0.0f, -18.5f),   // East side
+        vec3(-5.5f, 0.0f, -18.5f)   // West side
+    };
+    
+    for (int i = 0; i < 2; i++) {
+        // Only render spotlight if it's been activated
+        if (!cabinetSpotlights[i]) continue;
+        
+        mat4 model = mat4(1.0f);
+        model = translate(model, cabinetPositions[i] + vec3(0.0f, 7.0f, 0.0f));  // Above cabinet
+        model = rotate(model, radians(180.0f), vec3(1.0f, 0.0f, 0.0f));
+        model = scale(model, vec3(0.5f, 0.5f, 0.5f));
+        
+        mat4 mvp = projection * view * model;
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &model[0][0]);
+        
+        glUniform1i(UseTextureID, 1);
+        if (spotlightModel.textureID > 0) {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, spotlightModel.textureID);
+            glUniform1i(TextureID, 0);
+        }
+        
+        glDrawArrays(GL_TRIANGLES, 0, spotlightModel.vertexCount);
+    }
+    
+    glBindVertexArray(0);
+}
+
+std::vector<glm::vec3> Hallway::getActiveSpotlightPositions() const {
+    std::vector<glm::vec3> positions;
+    
+    vec3 cabinetPositions[] = {
+        vec3(5.5f, 0.0f, -18.5f),   // East side
+        vec3(-5.5f, 0.0f, -18.5f)   // West side
+    };
+    
+    for (int i = 0; i < 2; i++) {
+        if (cabinetSpotlights[i]) {
+            // Light source position slightly below spotlight model
+            positions.push_back(cabinetPositions[i] + vec3(0.0f, 6.0f, 0.0f));
+        }
+    }
+    
+    return positions;
 }

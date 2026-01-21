@@ -2,7 +2,7 @@
 #include <iostream>
 
 // Initialize static members
-Camera Application::camera(glm::vec3(0.0f, 3.0f, 10.0f));
+Camera Application::camera(glm::vec3(0.0f, 3.0f, 30.0f));
 float Application::lastX = 0.0f;
 float Application::lastY = 0.0f;
 bool Application::firstMouse = true;

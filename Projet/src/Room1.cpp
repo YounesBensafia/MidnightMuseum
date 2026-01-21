@@ -7,6 +7,10 @@
 using namespace glm;
 
 Room1::Room1(Application& app) : app(app), rm(ResourceManager::getInstance()) {
+    // Initialize all table spotlights as off
+    for (int i = 0; i < 6; i++) {
+        tableSpotlights[i] = false;
+    }
 }
 
 Room1::~Room1() {
@@ -33,6 +37,7 @@ void Room1::init() {
     chandelierModel = rm.loadFBXModel("model/chandlier.glb");
     skirtingBoardModel = rm.loadFBXModel("model/skirtingboard.glb");
     skullModel = rm.loadFBXModel("model/skull.glb");
+    spotlightModel = rm.loadFBXModel("model/spotlight.glb");
     
     initPromptUI();
 }
@@ -98,12 +103,21 @@ void Room1::update(float dt, GLFWwindow* window) {
     float distanceToCoffin = length(vec2(cameraPos.x - coffinPosition.x, cameraPos.z - coffinPosition.z));
     playerNearCoffin = (distanceToCoffin < interactionDistance);
     
+    // Check if player is near the mourning statue
+    float distanceToMourning = length(vec2(cameraPos.x - mourningPosition.x, cameraPos.z - mourningPosition.z));
+    playerNearMourning = (distanceToMourning < interactionDistance);
+    
     // Toggle effigy animation with E key when near
-    if (playerNearEffigy && !playerNearCoffin) {
+    if (playerNearEffigy && !playerNearCoffin && !playerNearMourning) {
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
             if (!eKeyPressed) {
                 effigyAnimating = !effigyAnimating;
                 printf("Effigy animation: %s\n", effigyAnimating ? "ON" : "OFF");
+                // Turn on light for left front table (index 0) when effigy is activated
+                if (effigyAnimating) {
+                    tableSpotlights[0] = true;
+                    printf("Table spotlight 0 activated!\n");
+                }
                 eKeyPressed = true;
             }
         } else {
@@ -112,11 +126,34 @@ void Room1::update(float dt, GLFWwindow* window) {
     }
     
     // Toggle coffin animation with E key when near
-    if (playerNearCoffin && !playerNearEffigy) {
+    if (playerNearCoffin && !playerNearEffigy && !playerNearMourning) {
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
             if (!eKeyPressed) {
                 coffinAnimating = !coffinAnimating;
                 printf("Coffin animation: %s\n", coffinAnimating ? "ON" : "OFF");
+                // Turn on light for left back table (index 2) when coffin is activated
+                if (coffinAnimating) {
+                    tableSpotlights[2] = true;
+                    printf("Table spotlight 2 activated!\n");
+                }
+                eKeyPressed = true;
+            }
+        } else {
+            eKeyPressed = false;
+        }
+    }
+    
+    // Toggle mourning statue light with E key when near
+    if (playerNearMourning && !playerNearEffigy && !playerNearCoffin) {
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+            if (!eKeyPressed) {
+                mourningActivated = !mourningActivated;
+                printf("Mourning statue: %s\n", mourningActivated ? "ACTIVATED" : "OFF");
+                // Turn on light for left middle table (index 1) when statue is activated
+                if (mourningActivated) {
+                    tableSpotlights[1] = true;
+                    printf("Table spotlight 1 activated!\n");
+                }
                 eKeyPressed = true;
             }
         } else {
@@ -174,6 +211,7 @@ void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgra
         renderFlashlight(view, projection, shaderProgram);
     }
     renderChandelier(view, projection, shaderProgram);
+    renderTableSpotlights(view, projection, shaderProgram);
     renderEffigy(view, projection, shaderProgram);
     renderEKeyPrompt(projection);
 }
@@ -542,7 +580,7 @@ void Room1::renderEffigy(const mat4& view, const mat4& projection, GLuint shader
 }
 
 void Room1::renderEKeyPrompt(const mat4& projection) {
-    if ((!playerNearEffigy && !playerNearCoffin) || promptVAO == 0) return;
+    if ((!playerNearEffigy && !playerNearCoffin && !playerNearMourning) || promptVAO == 0) return;
     
     // Get shader program from ResourceManager
     GLuint shaderProgram = rm.getShader("mainShader");
@@ -585,7 +623,8 @@ void Room1::renderEKeyPrompt(const mat4& projection) {
 }
 
 bool Room1::checkCollision(const vec3& newPos) {
-    return checkFossilCollision(newPos) || checkWallCollision(newPos) || checkTableCollision(newPos);
+    return checkFossilCollision(newPos) || checkWallCollision(newPos) || checkTableCollision(newPos) ||
+           checkRopeBarrierCollision(newPos) || checkSkullCollision(newPos) || checkMourningStatueCollision(newPos);
 }
 
 bool Room1::checkFossilCollision(const vec3& newPos) {
@@ -616,6 +655,76 @@ bool Room1::checkTableCollision(const vec3& newPos) {
         }
     }
     return false;
+}
+
+bool Room1::checkRopeBarrierCollision(const vec3& newPos) {
+    // 8 rope barriers total: 4 around fossils + 4 around skull
+    vec3 barrierPositions[] = {
+        vec3(4.0f, 1.6f, -1.0f),   // East side of fossils
+        vec3(-4.0f, 1.6f, -1.0f),  // West side of fossils
+        vec3(0.0f, 1.6f, 4.0f),    // South side of fossils
+        vec3(0.0f, 1.6f, -6.0f),   // North side of fossils
+        vec3(7.0f, 1.6f, 15.0f),   // East side of skull
+        vec3(-7.0f, 1.6f, 15.0f),  // West side of skull
+        vec3(0.0f, 1.6f, 20.0f),   // South side of skull
+        vec3(0.0f, 1.6f, 9.0f)     // North side of skull
+    };
+    
+    float barrierRotations[] = {
+        90.0f,    // East
+        270.0f,   // West
+        180.0f,   // South
+        0.0f,     // North
+        90.0f,    // East of skull
+        270.0f,   // West of skull
+        180.0f,   // South of skull
+        0.0f      // North of skull
+    };
+    
+    // Check collision with each barrier (treated as rectangular area)
+    for (int i = 0; i < 8; i++) {
+        vec3 pos = barrierPositions[i];
+        float rot = barrierRotations[i];
+        
+        // Rope barriers are oriented along their rotation
+        // Length ~2.0, width ~0.3 for collision
+        float halfLength = 1.5f;
+        float halfWidth = 0.3f;
+        
+        // Convert rotation to radians and get direction
+        float rotRad = radians(rot);
+        float cosRot = cos(rotRad);
+        float sinRot = sin(rotRad);
+        
+        // Transform player position to barrier's local space
+        float dx = newPos.x - pos.x;
+        float dz = newPos.z - pos.z;
+        float localX = dx * cosRot + dz * sinRot;
+        float localZ = -dx * sinRot + dz * cosRot;
+        
+        // Check if within barrier bounds
+        if (abs(localX) < halfLength && abs(localZ) < halfWidth) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+bool Room1::checkSkullCollision(const vec3& newPos) {
+    // Skull is at (-2.0f, -10.0f, 17.0f) with scale 10.0 (actual XZ collision center)
+    vec3 skullPos = vec3(-2.0f, 0.0f, 17.0f);  // Use ground level Y for 2D collision
+    float skullRadius = 3.5f;  // Larger radius for scaled skull (10x scale)
+    float distance = length(vec2(newPos.x - skullPos.x, newPos.z - skullPos.z));
+    return distance < skullRadius;
+}
+
+bool Room1::checkMourningStatueCollision(const vec3& newPos) {
+    // Mourning statue at (-17.0f, 1.0f, 10.0f)
+    vec3 mourningPos = vec3(-17.0f, 1.0f, 10.0f);
+    float mourningRadius = 1.5f;  // Collision radius around statue
+    float distance = length(vec2(newPos.x - mourningPos.x, newPos.z - mourningPos.z));
+    return distance < mourningRadius;
 }
 
 bool Room1::checkWallCollision(const vec3& newPos) {
@@ -929,4 +1038,68 @@ void Room1::renderSkull(const mat4& view, const mat4& projection, GLuint shaderP
         glUniform1i(UseTextureID, 1);
         glDrawElements(GL_TRIANGLES, skullModel.indexCount, GL_UNSIGNED_INT, 0);
     }
+}
+
+void Room1::renderTableSpotlights(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (spotlightModel.vertexCount > 0) {
+        glBindVertexArray(spotlightModel.VAO);
+        
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        
+        // Same positions as showcases but higher up (hanging from ceiling at Y=20)
+        vec3 spotlightPositions[] = {
+            vec3(-17.0f, 20.0f, -7.0f),   // Left front
+            vec3(-17.0f, 20.0f, 10.0f),   // Left middle
+            vec3(-17.0f, 20.0f, 27.0f),   // Left back
+            vec3(17.0f, 20.0f, -7.0f),    // Right front
+            vec3(17.0f, 20.0f, 10.0f),    // Right middle
+            vec3(17.0f, 20.0f, 27.0f)     // Right back
+        };
+        
+        for (int i = 0; i < 6; i++) {
+            // Only render if this spotlight is activated
+            if (!tableSpotlights[i]) continue;
+            
+            mat4 SpotlightModel = mat4(1.0f);
+            SpotlightModel = translate(SpotlightModel, spotlightPositions[i]);
+            SpotlightModel = rotate(SpotlightModel, radians(180.0f), vec3(1, 0, 0));  // Point downward
+            SpotlightModel = scale(SpotlightModel, vec3(3.0f, 3.0f, 3.0f));
+            mat4 SpotlightMVP = projection * view * SpotlightModel;
+            
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SpotlightMVP[0][0]);
+            glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SpotlightModel[0][0]);
+            
+            if (spotlightModel.textureID > 0) {
+                glBindTexture(GL_TEXTURE_2D, spotlightModel.textureID);
+            }
+            glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1);
+            glDrawElements(GL_TRIANGLES, spotlightModel.indexCount, GL_UNSIGNED_INT, 0);
+        }
+    }
+}
+
+std::vector<vec3> Room1::getActiveSpotlightPositions() const {
+    std::vector<vec3> activePositions;
+    
+    // Same positions as in renderTableSpotlights - these become light sources
+    vec3 spotlightPositions[] = {
+        vec3(-17.0f, 18.0f, -7.0f),   // Left front (slightly lower for better lighting)
+        vec3(-17.0f, 18.0f, 10.0f),   // Left middle
+        vec3(-17.0f, 18.0f, 27.0f),   // Left back
+        vec3(17.0f, 18.0f, -7.0f),    // Right front
+        vec3(17.0f, 18.0f, 10.0f),    // Right middle
+        vec3(17.0f, 18.0f, 27.0f)     // Right back
+    };
+    
+    for (int i = 0; i < 6; i++) {
+        if (tableSpotlights[i]) {
+            activePositions.push_back(spotlightPositions[i]);
+        }
+    }
+    
+    return activePositions;
 }

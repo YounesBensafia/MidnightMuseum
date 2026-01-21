@@ -29,8 +29,8 @@ void main()
 		baseColor = vec4(materialColor, 1.0);
 	}
 	
-	// Ambient
-	float ambientIntens = 0.2;
+	// Ambient - very low for dark museum atmosphere
+	float ambientIntens = 0.05;
 	vec3 ambient = lightColor * ambientIntens;
 	
 	vec3 totalDiffuse = vec3(0.0);
@@ -40,11 +40,15 @@ void main()
 	
 	// Calculate lighting contribution from each light
 	for (int i = 0; i < numLights; i++) {
-		// Diffuse
+		// Diffuse - stronger for activated spotlights
 		vec3 lightDir = normalize(lightPos[i] - vPos);
+		float distance = length(lightPos[i] - vPos);
 		float diff = max(dot(normal, lightDir), 0.0);
-		float diffusIntens = 0.15;
-		totalDiffuse += diff * lightColor * diffusIntens;
+		
+		// Stronger attenuation and intensity for spotlight effect
+		float attenuation = 1.0 / (1.0 + 0.02 * distance + 0.005 * distance * distance);
+		float diffusIntens = 0.8; // Much brighter when activated
+		totalDiffuse += diff * lightColor * diffusIntens * attenuation;
 		
 		// Specular
 		float specIntens = 0.2;

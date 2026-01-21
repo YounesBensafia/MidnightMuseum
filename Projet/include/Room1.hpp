@@ -17,6 +17,9 @@ public:
     void render(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram, bool flashlightOn = false);
     bool checkCollision(const glm::vec3& newPos);
     
+    // Get active spotlight positions for lighting calculations
+    std::vector<glm::vec3> getActiveSpotlightPositions() const;
+    
 private:
     Application& app;
     ResourceManager& rm;
@@ -35,6 +38,10 @@ private:
     FBXModel skirtingBoardModel;
     FBXModel skullModel;
     
+    // Spotlight model for tables
+    FBXModel spotlightModel;
+    bool tableSpotlights[6]; // Track which table lights are on
+    
     // Helper methods
     void renderWalls(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderFloorAndCeiling(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
@@ -50,10 +57,14 @@ private:
     void renderSkirtingBoards(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderSkull(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderEKeyPrompt(const glm::mat4& projection);
+    void renderTableSpotlights(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     
     bool checkFossilCollision(const glm::vec3& newPos);
     bool checkTableCollision(const glm::vec3& newPos);
     bool checkWallCollision(const glm::vec3& newPos);
+    bool checkRopeBarrierCollision(const glm::vec3& newPos);
+    bool checkSkullCollision(const glm::vec3& newPos);
+    bool checkMourningStatueCollision(const glm::vec3& newPos);
     
     // Animation state
     bool effigyAnimating = false;
@@ -70,6 +81,11 @@ private:
     float coffinAnimTime = 0.0f;
     glm::vec3 coffinPosition = glm::vec3(-17.0f, 4.0f, 27.0f);
     bool playerNearCoffin = false;
+    
+    // Mourning statue state
+    bool mourningActivated = false;
+    glm::vec3 mourningPosition = glm::vec3(-17.0f, 1.0f, 10.0f);
+    bool playerNearMourning = false;
     
     // E key prompt UI
     GLuint promptVAO = 0;

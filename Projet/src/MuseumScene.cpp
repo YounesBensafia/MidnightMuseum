@@ -47,14 +47,9 @@ void MuseumScene::init() {
 }
 
 void MuseumScene::initLights() {
-    // Corner lights setup - 2 per room positioned like lamps
+    // Disable corner lights for dark atmosphere - only activated spotlights will provide light
     cornerLights = {
-        vec3(-12.0f, 11.5f, -12.0f),  // Main room - back left corner
-        vec3(12.0f, 11.5f, -12.0f),   // Main room - back right corner
-        vec3(-5.0f, 11.5f, -20.0f),   // Hallway - left side
-        vec3(5.0f, 11.5f, -20.0f),    // Hallway - right side
-        vec3(-10.0f, 11.5f, -31.0f),  // Second room - back left corner
-        vec3(10.0f, 11.5f, -31.0f)    // Second room - back right corner
+        // All corner lights removed - scene starts dark
     };
 }
 
@@ -123,12 +118,20 @@ void MuseumScene::render() {
     glUniform3f(LightClrID, 1.0f, 1.0f, 1.0f);
     glUniform3fv(ViewPosID, 1, &camera.position[0]);
     
-    // Send all light positions to shader
-    for (size_t i = 0; i < cornerLights.size(); i++) {
+    // Combine corner lights with active table spotlights from Room1 and cabinet spotlights from Hallway
+    std::vector<vec3> allLights = cornerLights;
+    std::vector<vec3> activeSpotlights = room1->getActiveSpotlightPositions();
+    std::vector<vec3> hallwaySpotlights = hallway->getActiveSpotlightPositions();
+    allLights.insert(allLights.end(), activeSpotlights.begin(), activeSpotlights.end());
+    allLights.insert(allLights.end(), hallwaySpotlights.begin(), hallwaySpotlights.end());
+    
+    // Send all light positions to shader (max 6 from array size)
+    int numLightsToSend = std::min((int)allLights.size(), 6);
+    for (int i = 0; i < numLightsToSend; i++) {
         std::string lightPosName = "lightPos[" + std::to_string(i) + "]";
-        glUniform3fv(glGetUniformLocation(shaderProgram, lightPosName.c_str()), 1, &cornerLights[i][0]);
+        glUniform3fv(glGetUniformLocation(shaderProgram, lightPosName.c_str()), 1, &allLights[i][0]);
     }
-    glUniform1i(glGetUniformLocation(shaderProgram, "numLights"), (int)cornerLights.size());
+    glUniform1i(glGetUniformLocation(shaderProgram, "numLights"), numLightsToSend);
     
     // Flashlight spotlight
     glUniform3fv(glGetUniformLocation(shaderProgram, "spotLightPos"), 1, &camera.position[0]);
