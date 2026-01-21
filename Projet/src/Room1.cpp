@@ -27,6 +27,7 @@ void Room1::init() {
     effigyModel = rm.loadFBXModel("model/effigy.glb");
     ropeBarrierModel = rm.loadFBXModel("model/rope_barrier.glb");
     coffinModel = rm.loadFBXModel("model/egyptian_coffin.glb");
+    mourningFemaleModel = rm.loadFBXModel("model/mourning_female.glb");
     
     initPromptUI();
 }
@@ -160,6 +161,7 @@ void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderFossils(view, projection, shaderProgram);
     renderRopeBarriers(view, projection, shaderProgram);
     renderCoffin(view, projection, shaderProgram);
+    renderMourningFemale(view, projection, shaderProgram);
     renderEffigy(view, projection, shaderProgram);
     renderEKeyPrompt(projection);
 }
@@ -308,18 +310,22 @@ void Room1::renderShowcases(const mat4& view, const mat4& projection, GLuint sha
         
         // Showcase positions: 3 on left side, 3 on right side
         vec3 showcasePositions[] = {
-            vec3(-17.0f, 1.0f, -7.0f),   // Left front
-            vec3(-17.0f, 1.0f, 10.0f),   // Left middle
-            vec3(-17.0f, 1.0f, 27.0f),   // Left back
-            vec3(17.0f, 1.0f, -7.0f),    // Right front
-            vec3(17.0f, 1.0f, 10.0f),    // Right middle
-            vec3(17.0f, 1.0f, 27.0f)     // Right back
+            vec3(-17.0f, 4.0f, -7.0f),   // Left front
+            vec3(-17.0f, 4.0f, 10.0f),   // Left middle
+            vec3(-17.0f, 4.0f, 27.0f),   // Left back
+            vec3(17.0f, 4.0f, -7.0f),    // Right front
+            vec3(17.0f, 4.0f, 10.0f),    // Right middle
+            vec3(17.0f, 4.0f, 27.0f)     // Right back
         };
         
         for (int i = 0; i < 6; i++) {
+            // Skip left middle showcase (index 1) - mourning female is there without table
+            if (i == 1) continue;
+            
             mat4 Model = mat4(1.0f);
             Model = translate(Model, showcasePositions[i]);
             Model = scale(Model, vec3(1.0f, 1.0f, 1.0f));
+            Model = rotate(Model, radians(90.0f), vec3(0, 1, 0));
             mat4 MVP = projection * view * Model;
             
             glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
@@ -424,9 +430,9 @@ void Room1::renderCoffin(const mat4& view, const mat4& projection, GLuint shader
         GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
         GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
         
-        // Place coffin on top of left middle table at (-17.0f, 1.0f, 10.0f)
+        // Place coffin on top of left back table (last showcase)
         mat4 CoffinModel = mat4(1.0f);
-        CoffinModel = translate(CoffinModel, vec3(-17.0f, 4.0f + coffinFloatOffset, 10.0f));  // Apply floating animation
+        CoffinModel = translate(CoffinModel, vec3(-17.0f, 2.5f + coffinFloatOffset, 26.5f));  // Apply floating animation
     
         CoffinModel = rotate(CoffinModel, radians(270.0f), vec3(0, 0, 1));  // Flip vertically
         CoffinModel = rotate(CoffinModel, radians(-10.0f), vec3(0, 1, 0));
@@ -450,6 +456,36 @@ void Room1::renderCoffin(const mat4& view, const mat4& projection, GLuint shader
     }
 }
 
+void Room1::renderMourningFemale(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (mourningFemaleModel.vertexCount > 0) {
+        glBindVertexArray(mourningFemaleModel.VAO);
+        
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        
+        // Place mourning female on left middle table where coffin was
+        mat4 FemaleModel = mat4(1.0f);
+        FemaleModel = translate(FemaleModel, vec3(-17.0f, 1.0f, 10.0f));
+        FemaleModel = rotate(FemaleModel, radians(90.0f), vec3(0, 1, 0));  // Face the fossils
+        FemaleModel = rotate(FemaleModel, radians(-120.0f), vec3(1, 0, 0));  // Rotate to sit properly
+
+        FemaleModel = scale(FemaleModel, vec3(5.0f, 5.0f, 5.0f));  // Much bigger
+        mat4 FemaleMVP = projection * view * FemaleModel;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &FemaleMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &FemaleModel[0][0]);
+        
+        if (mourningFemaleModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, mourningFemaleModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, mourningFemaleModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
 void Room1::renderEffigy(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     if (effigyModel.vertexCount > 0) {
         glBindVertexArray(effigyModel.VAO);
@@ -461,7 +497,7 @@ void Room1::renderEffigy(const mat4& view, const mat4& projection, GLuint shader
         
         mat4 EffigyModel = mat4(1.0f);
         // Apply floating animation offset
-        EffigyModel = translate(EffigyModel, vec3(-17.5f, 4.0f + effigyFloatOffset, -7.0f));
+        EffigyModel = translate(EffigyModel, vec3(-17.5f, 2.5f + effigyFloatOffset, -7.0f));
         EffigyModel = rotate(EffigyModel, radians(120.0f), vec3(0, 1, 0));
         EffigyModel = rotate(EffigyModel, radians(-90.0f), vec3(1, 0, 0));
         EffigyModel = rotate(EffigyModel, radians(-90.0f), vec3(0, 1, 0));

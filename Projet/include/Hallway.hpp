@@ -22,10 +22,12 @@ private:
     ResourceManager& rm;
     
     Model carpetModel;
+    FBXModel displayCabinetModel;
     
     // Helper methods
     void renderWalls(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderFloorAndCeiling(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderDisplayCabinets(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     
     bool checkWallCollision(const glm::vec3& newPos);
 };

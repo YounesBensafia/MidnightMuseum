@@ -86,5 +86,6 @@ void main()
 	}
 	
 	vec3 lighting = ambient + totalDiffuse + totalSpecular;
-	color = vec4(lighting, 1.0) * baseColor;
+	vec3 finalColor = lighting * baseColor.rgb;
+	color = vec4(finalColor, 1.0);
 }

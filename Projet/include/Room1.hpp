@@ -28,6 +28,7 @@ private:
     FBXModel effigyModel;
     FBXModel ropeBarrierModel;
     FBXModel coffinModel;
+    FBXModel mourningFemaleModel;
     
     // Helper methods
     void renderWalls(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
@@ -37,6 +38,7 @@ private:
     void renderEffigy(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderRopeBarriers(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderCoffin(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderMourningFemale(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderEKeyPrompt(const glm::mat4& projection);
     
     bool checkFossilCollision(const glm::vec3& newPos);
@@ -56,7 +58,7 @@ private:
     bool coffinAnimating = false;
     float coffinFloatOffset = 0.0f;
     float coffinAnimTime = 0.0f;
-    glm::vec3 coffinPosition = glm::vec3(-17.0f, 4.0f, 10.0f);
+    glm::vec3 coffinPosition = glm::vec3(-17.0f, 4.0f, 27.0f);
     bool playerNearCoffin = false;
     
     // E key prompt UI

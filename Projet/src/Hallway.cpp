@@ -18,6 +18,7 @@ void Hallway::init() {
     
     // Load carpet model for walls/floor/ceiling
     carpetModel = rm.loadModel("model/carpet.obj", true);
+    displayCabinetModel = rm.loadFBXModel("model/cabinet2.glb");
 }
 
 void Hallway::update(float dt, GLFWwindow* window) {
@@ -28,6 +29,7 @@ void Hallway::update(float dt, GLFWwindow* window) {
 void Hallway::render(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     renderFloorAndCeiling(view, projection, shaderProgram);
     renderWalls(view, projection, shaderProgram);
+    renderDisplayCabinets(view, projection, shaderProgram);
 }
 
 void Hallway::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLuint shaderProgram) {
@@ -117,17 +119,60 @@ bool Hallway::checkCollision(const vec3& newPos) {
     return checkWallCollision(newPos);
 }
 
+void Hallway::renderDisplayCabinets(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (displayCabinetModel.vertexCount > 0) {
+        glBindVertexArray(displayCabinetModel.VAO);
+        
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        
+        // Hallway runs from z=-15 to z=-22, place cabinets on each side
+        vec3 cabinetPositions[] = {
+            vec3(5.5f, 0.0f, -18.5f),   // East side (closer to wall)
+            vec3(-5.5f, 0.0f, -18.5f)   // West side (closer to wall)
+        };
+        
+        float cabinetRotations[] = {
+            90.0f,   // East cabinet 
+            -90.0f   // West cabinet
+        };
+        
+        for (int i = 0; i < 2; i++) {
+            mat4 CabinetModel = mat4(1.0f);
+            CabinetModel = translate(CabinetModel, cabinetPositions[i]);
+            CabinetModel = rotate(CabinetModel, radians(cabinetRotations[i]), vec3(0, 1, 0));  // Face into hallway
+            CabinetModel = rotate(CabinetModel, radians(-90.0f), vec3(1, 0, 0));  // Stand upright
+            CabinetModel = scale(CabinetModel, vec3(0.018f, 0.018f, 0.018f));  // Scaled down
+            mat4 CabinetMVP = projection * view * CabinetModel;
+            
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &CabinetMVP[0][0]);
+            glUniformMatrix4fv(ModelID, 1, GL_FALSE, &CabinetModel[0][0]);
+            
+            if (displayCabinetModel.textureID > 0) {
+                glBindTexture(GL_TEXTURE_2D, displayCabinetModel.textureID);
+                glUniform1i(UseTextureID, 1);
+            } else {
+                glUniform1i(UseTextureID, 0);
+            }
+            glUniform1i(TextureID, 0);
+            glDrawElements(GL_TRIANGLES, displayCabinetModel.indexCount, GL_UNSIGNED_INT, 0);
+        }
+    }
+}
+
 bool Hallway::checkWallCollision(const vec3& newPos) {
-    float wallMargin = 0.5f;
+    // float wallMargin = 0.5f;
     
     // === HALLWAY SIDE WALLS (x = ±12 from z = -15 to z = -22) ===
-    if (newPos.z < -15.0f && newPos.z > -22.0f) {
-        // East hallway wall at x = 12
-        if (newPos.x > 12.0f - wallMargin) return true;
-        
-        // West hallway wall at x = -12
-        if (newPos.x < -12.0f + wallMargin) return true;
-    }
+    // if (newPos.z < -15.0f && newPos.z > -22.0f) {
+    //     // East hallway wall at x = 12
+    //     if (newPos.x > 12.0f - wallMargin) return true;
+    //     
+    //     // West hallway wall at x = -12
+    //     if (newPos.x < -12.0f + wallMargin) return true;
+    // }
     
     return false;
 }
