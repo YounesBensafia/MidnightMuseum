@@ -80,7 +80,6 @@ public:
             zoom = 45.0f;
     }
 
-private:
     void updateCameraVectors() {
         glm::vec3 direction;
         direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -91,6 +90,8 @@ private:
         right = glm::normalize(glm::cross(front, worldUp));
         up = glm::normalize(glm::cross(right, front));
     }
+
+private:
 };
 
 #endif

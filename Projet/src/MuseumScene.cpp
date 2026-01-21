@@ -74,7 +74,10 @@ void MuseumScene::update(float dt) {
     hallway->update(dt, app.getWindow());
     room2->update(dt, app.getWindow());
 
-    checkCollisions();
+    // Only check collisions if not in inspection mode
+    if (!hallway->isInspecting()) {
+        checkCollisions();
+    }
 }
 
 void MuseumScene::checkCollisions() {
@@ -132,36 +135,44 @@ void MuseumScene::render() {
     glUniform3fv(glGetUniformLocation(shaderProgram, "spotLightDir"), 1, &camera.front[0]);
     glUniform1i(glGetUniformLocation(shaderProgram, "spotLightOn"), flashlightOn);
 
-    // Render shared large floor that spans entire museum
-    if (carpetModel.vertexCount > 0) {
-        glBindVertexArray(carpetModel.VAO);
+    // Check if in inspection mode
+    if (hallway->isInspecting()) {
+        // In inspection mode: only render the inspected object with simple lighting
+        hallway->updateInspectionCamera(View, Projection);
+        hallway->renderInspectionObject(shaderProgram);
+    } else {
+        // Normal rendering mode
+        // Render shared large floor that spans entire museum
+        if (carpetModel.vertexCount > 0) {
+            glBindVertexArray(carpetModel.VAO);
+            
+            GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+            GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+            GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+            GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+            
+            mat4 FloorModel = mat4(1.0f);
+            FloorModel = translate(FloorModel, vec3(0.0f, 0.0f, -5.0f)); // Shift center forward to cover Room1 back area
+            FloorModel = scale(FloorModel, vec3(15.0f, 1.0f, 30.0f)); // Increased Z scale to cover entire Room1
+            mat4 FloorMVP = Projection * View * FloorModel;
+            
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &FloorMVP[0][0]);
+            glUniformMatrix4fv(ModelID, 1, GL_FALSE, &FloorModel[0][0]);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, rm.getTexture("floor"));
+            glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1);
+            glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
+        }
         
-        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
-        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
-        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
-        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        // Render each room
+        room1->render(View, Projection, shaderProgram, flashlightOn);
+        hallway->render(View, Projection, shaderProgram);
+        room2->render(View, Projection, shaderProgram);
         
-        mat4 FloorModel = mat4(1.0f);
-        FloorModel = translate(FloorModel, vec3(0.0f, 0.0f, -5.0f)); // Shift center forward to cover Room1 back area
-        FloorModel = scale(FloorModel, vec3(15.0f, 1.0f, 30.0f)); // Increased Z scale to cover entire Room1
-        mat4 FloorMVP = Projection * View * FloorModel;
-        
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &FloorMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &FloorModel[0][0]);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, rm.getTexture("floor"));
-        glUniform1i(TextureID, 0);
-        glUniform1i(UseTextureID, 1);
-        glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
+        // Render flashlight
+        renderFlashlightModel(View, Projection);
     }
-    
-    // Render each room
-    room1->render(View, Projection, shaderProgram, flashlightOn);
-    hallway->render(View, Projection, shaderProgram);
-    room2->render(View, Projection, shaderProgram);
-    
-    // Render flashlight
-    renderFlashlightModel(View, Projection);
     
     glBindVertexArray(0);
 }
