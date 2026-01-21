@@ -28,6 +28,9 @@ void Room1::init() {
     ropeBarrierModel = rm.loadFBXModel("model/rope_barrier.glb");
     coffinModel = rm.loadFBXModel("model/egyptian_coffin.glb");
     mourningFemaleModel = rm.loadFBXModel("model/mourning_female.glb");
+    tigerPaintingModel = rm.loadFBXModel("model/tiger_painting.glb");
+    flashlightModel = rm.loadFBXModel("model/flashlight.glb");
+    chandelierModel = rm.loadFBXModel("model/chandlier.glb");
     
     initPromptUI();
 }
@@ -148,7 +151,7 @@ void Room1::update(float dt, GLFWwindow* window) {
     }
 }
 
-void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgram, bool flashlightOn) {
     GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
     GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
     GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
@@ -162,6 +165,11 @@ void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderRopeBarriers(view, projection, shaderProgram);
     renderCoffin(view, projection, shaderProgram);
     renderMourningFemale(view, projection, shaderProgram);
+    renderTigerPainting(view, projection, shaderProgram);
+    if (flashlightOn) {
+        renderFlashlight(view, projection, shaderProgram);
+    }
+    renderChandelier(view, projection, shaderProgram);
     renderEffigy(view, projection, shaderProgram);
     renderEKeyPrompt(projection);
 }
@@ -320,7 +328,8 @@ void Room1::renderShowcases(const mat4& view, const mat4& projection, GLuint sha
         
         for (int i = 0; i < 6; i++) {
             // Skip left middle showcase (index 1) - mourning female is there without table
-            if (i == 1) continue;
+            // Skip right front, middle and back showcases (indices 3, 4, 5) - clear space for painting
+            if (i == 1 || i == 3 || i == 4 || i == 5) continue;
             
             mat4 Model = mat4(1.0f);
             Model = translate(Model, showcasePositions[i]);
@@ -614,4 +623,104 @@ bool Room1::checkWallCollision(const vec3& newPos) {
     }
     
     return false;
+}
+
+void Room1::renderTigerPainting(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (tigerPaintingModel.vertexCount > 0) {
+        glBindVertexArray(tigerPaintingModel.VAO);
+        
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        
+        // Place tiger painting on east wall (opposite side)
+        // East wall is at x=24, centered at z=18.5
+        mat4 PaintingModel = mat4(1.0f);
+        PaintingModel = translate(PaintingModel, vec3(21.8f, 11.0f, 11.0f));  // High on wall
+        PaintingModel = rotate(PaintingModel, radians(90.0f), vec3(0, 1, 0));  // Face west
+        PaintingModel = rotate(PaintingModel, radians(-65.0f), vec3(0, 0, 1));  // Face west
+        PaintingModel = rotate(PaintingModel, radians(20.0f), vec3(0, 1, 0));  // Face west
+        PaintingModel = rotate(PaintingModel, radians(2.0f), vec3(1, 0, 0));  // Face west
+
+        PaintingModel = scale(PaintingModel, vec3(5.0f, 5.0f, 5.0f));  // BIG
+        mat4 PaintingMVP = projection * view * PaintingModel;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &PaintingMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &PaintingModel[0][0]);
+        
+        if (tigerPaintingModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, tigerPaintingModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, tigerPaintingModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
+void Room1::renderFlashlight(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (flashlightModel.vertexCount > 0) {
+        glBindVertexArray(flashlightModel.VAO);
+        
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        
+        // Get camera position and direction for flashlight
+        vec3 cameraPos = app.getCamera().position;
+        vec3 cameraFront = app.getCamera().front;
+        vec3 cameraRight = app.getCamera().right;
+        
+        // Position flashlight slightly forward and to the right of camera
+        mat4 FlashlightModel = mat4(1.0f);
+        vec3 flashlightPos = cameraPos + cameraFront * 0.3f + cameraRight * 0.2f - vec3(0, 0.15f, 0);
+        FlashlightModel = translate(FlashlightModel, flashlightPos);
+        
+        // Rotate to align with camera direction
+        float yaw = atan2(cameraFront.x, cameraFront.z);
+        FlashlightModel = rotate(FlashlightModel, yaw, vec3(0, 1, 0));
+        FlashlightModel = rotate(FlashlightModel, radians(-90.0f), vec3(1, 0, 0));  // Point forward
+        
+        FlashlightModel = scale(FlashlightModel, vec3(0.06f, 0.06f, 0.06f));
+        mat4 FlashlightMVP = projection * view * FlashlightModel;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &FlashlightMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &FlashlightModel[0][0]);
+        
+        if (flashlightModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, flashlightModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, flashlightModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
+void Room1::renderChandelier(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (chandelierModel.vertexCount > 0) {
+        glBindVertexArray(chandelierModel.VAO);
+        
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        
+        // Place chandelier at center of ceiling (x=0, z=10 is room center, Y=23.5 just below ceiling)
+        mat4 ChandelierModel = mat4(1.0f);
+        ChandelierModel = translate(ChandelierModel, vec3(0.0f, 24.0f, 10.0f));
+        ChandelierModel = rotate(ChandelierModel, radians(-90.0f), vec3(1, 0, 0));
+        ChandelierModel = scale(ChandelierModel, vec3(5.0f, 5.0f, 5.0f));
+        mat4 ChandelierMVP = projection * view * ChandelierModel;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &ChandelierMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &ChandelierModel[0][0]);
+        
+        if (chandelierModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, chandelierModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, chandelierModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
 }

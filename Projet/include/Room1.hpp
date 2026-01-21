@@ -14,7 +14,7 @@ public:
     
     void init();
     void update(float dt, GLFWwindow* window);
-    void render(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void render(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram, bool flashlightOn = false);
     bool checkCollision(const glm::vec3& newPos);
     
 private:
@@ -29,6 +29,9 @@ private:
     FBXModel ropeBarrierModel;
     FBXModel coffinModel;
     FBXModel mourningFemaleModel;
+    FBXModel tigerPaintingModel;
+    FBXModel flashlightModel;
+    FBXModel chandelierModel;
     
     // Helper methods
     void renderWalls(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
@@ -39,6 +42,9 @@ private:
     void renderRopeBarriers(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderCoffin(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderMourningFemale(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderTigerPainting(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderFlashlight(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderChandelier(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderEKeyPrompt(const glm::mat4& projection);
     
     bool checkFossilCollision(const glm::vec3& newPos);

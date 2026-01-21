@@ -140,8 +140,8 @@ void MuseumScene::render() {
         GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
         
         mat4 FloorModel = mat4(1.0f);
-        FloorModel = translate(FloorModel, vec3(0.0f, 0.0f, -14.0f)); // Center between all rooms
-        FloorModel = scale(FloorModel, vec3(15.0f, 1.0f, 20.0f)); // Large enough to cover all rooms
+        FloorModel = translate(FloorModel, vec3(0.0f, 0.0f, -5.0f)); // Shift center forward to cover Room1 back area
+        FloorModel = scale(FloorModel, vec3(15.0f, 1.0f, 30.0f)); // Increased Z scale to cover entire Room1
         mat4 FloorMVP = Projection * View * FloorModel;
         
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &FloorMVP[0][0]);
@@ -154,7 +154,7 @@ void MuseumScene::render() {
     }
     
     // Render each room
-    room1->render(View, Projection, shaderProgram);
+    room1->render(View, Projection, shaderProgram, flashlightOn);
     hallway->render(View, Projection, shaderProgram);
     room2->render(View, Projection, shaderProgram);
     

@@ -163,16 +163,16 @@ void Hallway::renderDisplayCabinets(const mat4& view, const mat4& projection, GL
 }
 
 bool Hallway::checkWallCollision(const vec3& newPos) {
-    // float wallMargin = 0.5f;
+    float wallMargin = 0.5f;
     
-    // === HALLWAY SIDE WALLS (x = ±12 from z = -15 to z = -22) ===
-    // if (newPos.z < -15.0f && newPos.z > -22.0f) {
-    //     // East hallway wall at x = 12
-    //     if (newPos.x > 12.0f - wallMargin) return true;
-    //     
-    //     // West hallway wall at x = -12
-    //     if (newPos.x < -12.0f + wallMargin) return true;
-    // }
+    // === HALLWAY SIDE WALLS (x = ±6 from z = -15 to z = -22) ===
+    if (newPos.z < -15.0f && newPos.z > -22.0f) {
+        // East hallway wall at x = 6
+        if (newPos.x > 6.0f - wallMargin) return true;
+        
+        // West hallway wall at x = -6
+        if (newPos.x < -6.0f + wallMargin) return true;
+    }
     
     return false;
 }
