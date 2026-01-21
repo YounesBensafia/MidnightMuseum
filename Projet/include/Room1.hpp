@@ -32,6 +32,8 @@ private:
     FBXModel tigerPaintingModel;
     FBXModel flashlightModel;
     FBXModel chandelierModel;
+    FBXModel skirtingBoardModel;
+    FBXModel skullModel;
     
     // Helper methods
     void renderWalls(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
@@ -45,6 +47,8 @@ private:
     void renderTigerPainting(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderFlashlight(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderChandelier(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderSkirtingBoards(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderSkull(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderEKeyPrompt(const glm::mat4& projection);
     
     bool checkFossilCollision(const glm::vec3& newPos);

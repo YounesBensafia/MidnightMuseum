@@ -31,6 +31,8 @@ void Room1::init() {
     tigerPaintingModel = rm.loadFBXModel("model/tiger_painting.glb");
     flashlightModel = rm.loadFBXModel("model/flashlight.glb");
     chandelierModel = rm.loadFBXModel("model/chandlier.glb");
+    skirtingBoardModel = rm.loadFBXModel("model/skirtingboard.glb");
+    skullModel = rm.loadFBXModel("model/skull.glb");
     
     initPromptUI();
 }
@@ -160,8 +162,10 @@ void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     
     renderFloorAndCeiling(view, projection, shaderProgram);
     renderWalls(view, projection, shaderProgram);
+    renderSkirtingBoards(view, projection, shaderProgram);
     renderShowcases(view, projection, shaderProgram);
     renderFossils(view, projection, shaderProgram);
+    renderSkull(view, projection, shaderProgram);
     renderRopeBarriers(view, projection, shaderProgram);
     renderCoffin(view, projection, shaderProgram);
     renderMourningFemale(view, projection, shaderProgram);
@@ -178,6 +182,7 @@ void Room1::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLui
     GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
     GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
     GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+    GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
     
     if (carpetModel.vertexCount > 0) {
         glBindVertexArray(carpetModel.VAO);
@@ -396,25 +401,34 @@ void Room1::renderRopeBarriers(const mat4& view, const mat4& projection, GLuint 
         // Position 4 rope barriers around the central fossils display
         // Fossils are at (0, 0, 0), place barriers in a square around them
         vec3 barrierPositions[] = {
-            vec3(4.0f, 1.0f, -1.0f),   // East side
-            vec3(-3.0f, 1.0f, -1.0f),  // West side
-            vec3(0.0f, 1.0f, 4.0f),   // South side
-            vec3(0.0f, 1.0f, -6.0f)   // North side
+            vec3(4.0f, 1.6f, -1.0f),   // East side
+            vec3(-4.0f, 1.6f, -1.0f),  // West side
+            vec3(0.0f, 1.6f, 4.0f),   // South side
+            vec3(0.0f, 1.6f, -6.0f),   // North side
+            // 4 barriers around skull - same X/Y, shifted in Z
+            vec3(7.0f, 1.6f, 15.0f),   // East side (shifted -5 in Z)
+            vec3(-7.0f, 1.6f, 15.0f),  // West side (shifted -5 in Z)
+            vec3(0.0f, 1.6f, 20.0f),   // South side (shifted -5 in Z)
+            vec3(0.0f, 1.6f, 9.0f)   // North side (shifted -5 in Z)
         };
         
         float barrierRotations[] = {
             90.0f,    // East
             270.0f,   // West
             180.0f,   // South
-            0.0f      // North
+            0.0f,     // North
+            90.0f,    // East of skull
+            270.0f,   // West of skull
+            180.0f,   // South of skull
+            0.0f      // North of skull
         };
         
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 8; i++) {
             mat4 BarrierModel = mat4(1.0f);
             BarrierModel = translate(BarrierModel, barrierPositions[i]);
             BarrierModel = rotate(BarrierModel, radians(barrierRotations[i]), vec3(0, 1, 0));
             BarrierModel = rotate(BarrierModel, radians(-90.0f), vec3(1, 0, 0));  // Stand upright, flipped
-            BarrierModel = scale(BarrierModel, vec3(0.03f, 0.03f, 0.03f));
+            BarrierModel = scale(BarrierModel, vec3(0.05f, 0.05f, 0.05f));
             mat4 BarrierMVP = projection * view * BarrierModel;
             
             glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &BarrierMVP[0][0]);
@@ -593,6 +607,9 @@ bool Room1::checkTableCollision(const vec3& newPos) {
     
     float tableRadius = 2.0f;
     for (int i = 0; i < 6; i++) {
+        // Skip removed tables: left middle (1), right front/middle/back (3, 4, 5)
+        if (i == 1 || i == 3 || i == 4 || i == 5) continue;
+        
         float distance = length(vec2(newPos.x - tablePositions[i].x, newPos.z - tablePositions[i].z));
         if (distance < tableRadius) {
             return true;
@@ -710,7 +727,7 @@ void Room1::renderChandelier(const mat4& view, const mat4& projection, GLuint sh
         mat4 ChandelierModel = mat4(1.0f);
         ChandelierModel = translate(ChandelierModel, vec3(0.0f, 24.0f, 10.0f));
         ChandelierModel = rotate(ChandelierModel, radians(-90.0f), vec3(1, 0, 0));
-        ChandelierModel = scale(ChandelierModel, vec3(5.0f, 5.0f, 5.0f));
+        ChandelierModel = scale(ChandelierModel, vec3(10.0f, 10.0f, 10.0f));
         mat4 ChandelierMVP = projection * view * ChandelierModel;
         
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &ChandelierMVP[0][0]);
@@ -722,5 +739,194 @@ void Room1::renderChandelier(const mat4& view, const mat4& projection, GLuint sh
         glUniform1i(TextureID, 0);
         glUniform1i(UseTextureID, 1);
         glDrawElements(GL_TRIANGLES, chandelierModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
+void Room1::renderSkirtingBoards(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (skirtingBoardModel.vertexCount > 0) {
+        glBindVertexArray(skirtingBoardModel.VAO);
+        
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        
+        // Room1 walls: South (z=34), East (x=24), West (x=-24), North (z=-14)
+        // Skirting boards along the 4 walls at floor level
+        
+        // South wall skirting (z=34)
+        mat4 SkirtSouth = mat4(1.0f);
+        SkirtSouth = translate(SkirtSouth, vec3(0.0f, 0.0f, 33.5f));
+        SkirtSouth = rotate(SkirtSouth, radians(-90.0f), vec3(1, 0, 0));  // Stand upright
+        SkirtSouth = scale(SkirtSouth, vec3(50.0f, 1.0f, 0.5f));  // Span full width, reduced height
+        mat4 SkirtSouthMVP = projection * view * SkirtSouth;
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SkirtSouthMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SkirtSouth[0][0]);
+        if (skirtingBoardModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, skirtingBoardModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, skirtingBoardModel.indexCount, GL_UNSIGNED_INT, 0);
+        
+        // East wall skirting (x=24)
+        mat4 SkirtEast = mat4(1.0f);
+        SkirtEast = translate(SkirtEast, vec3(23.5f, 0.0f, 10.0f));
+        SkirtEast = rotate(SkirtEast, radians(90.0f), vec3(0, 1, 0));
+        SkirtEast = rotate(SkirtEast, radians(-90.0f), vec3(1, 0, 0));  // Stand upright
+        SkirtEast = scale(SkirtEast, vec3(50.0f, 1.0f, 0.5f));  // Span full depth, reduced height
+        mat4 SkirtEastMVP = projection * view * SkirtEast;
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SkirtEastMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SkirtEast[0][0]);
+        if (skirtingBoardModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, skirtingBoardModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, skirtingBoardModel.indexCount, GL_UNSIGNED_INT, 0);
+        
+        // West wall skirting (x=-24)
+        mat4 SkirtWest = mat4(1.0f);
+        SkirtWest = translate(SkirtWest, vec3(-23.5f, 0.0f, 10.0f));
+        SkirtWest = rotate(SkirtWest, radians(-90.0f), vec3(0, 1, 0));
+        SkirtWest = rotate(SkirtWest, radians(-90.0f), vec3(1, 0, 0));  // Stand upright
+        SkirtWest = scale(SkirtWest, vec3(50.0f, 1.0f, 0.5f));  // Span full depth, reduced height
+        mat4 SkirtWestMVP = projection * view * SkirtWest;
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SkirtWestMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SkirtWest[0][0]);
+        if (skirtingBoardModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, skirtingBoardModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, skirtingBoardModel.indexCount, GL_UNSIGNED_INT, 0);
+        
+        // North wall skirting (z=-14) - with gap for doorway
+        // Left side
+        mat4 SkirtNorthLeft = mat4(1.0f);
+        SkirtNorthLeft = translate(SkirtNorthLeft, vec3(-14.0f, 0.0f, -13.5f));
+        SkirtNorthLeft = rotate(SkirtNorthLeft, radians(-180.0f), vec3(0, 1, 0));
+        SkirtNorthLeft = rotate(SkirtNorthLeft, radians(-90.0f), vec3(1, 0, 0));  // Stand upright
+        SkirtNorthLeft = scale(SkirtNorthLeft, vec3(20.0f, 1.0f, 0.5f));
+        mat4 SkirtNorthLeftMVP = projection * view * SkirtNorthLeft;
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SkirtNorthLeftMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SkirtNorthLeft[0][0]);
+        if (skirtingBoardModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, skirtingBoardModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, skirtingBoardModel.indexCount, GL_UNSIGNED_INT, 0);
+        
+        // Right side
+        mat4 SkirtNorthRight = mat4(1.0f);
+        SkirtNorthRight = translate(SkirtNorthRight, vec3(14.0f, 0.0f, -13.5f));
+        SkirtNorthRight = rotate(SkirtNorthRight, radians(-180.0f), vec3(0, 1, 0));
+        SkirtNorthRight = rotate(SkirtNorthRight, radians(-90.0f), vec3(1, 0, 0));  // Stand upright
+        SkirtNorthRight = scale(SkirtNorthRight, vec3(20.0f, 1.0f, 0.5f));
+        mat4 SkirtNorthRightMVP = projection * view * SkirtNorthRight;
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SkirtNorthRightMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SkirtNorthRight[0][0]);
+        if (skirtingBoardModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, skirtingBoardModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, skirtingBoardModel.indexCount, GL_UNSIGNED_INT, 0);
+        
+        // ===== TOP SKIRTING BOARDS (mirrored at ceiling level Y=24) =====
+        
+        // South wall top skirting (z=34)
+        mat4 SkirtSouthTop = mat4(1.0f);
+        SkirtSouthTop = translate(SkirtSouthTop, vec3(0.0f, 24.0f, 33.5f));
+        SkirtSouthTop = rotate(SkirtSouthTop, radians(180.0f), vec3(0, 1, 0));  // Flip to face inward
+        SkirtSouthTop = rotate(SkirtSouthTop, radians(90.0f), vec3(1, 0, 0));  // Face downward
+        SkirtSouthTop = scale(SkirtSouthTop, vec3(50.0f, 1.0f, 0.5f));
+        mat4 SkirtSouthTopMVP = projection * view * SkirtSouthTop;
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SkirtSouthTopMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SkirtSouthTop[0][0]);
+        if (skirtingBoardModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, skirtingBoardModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, skirtingBoardModel.indexCount, GL_UNSIGNED_INT, 0);
+        
+        // East wall top skirting (x=24)
+        mat4 SkirtEastTop = mat4(1.0f);
+        SkirtEastTop = translate(SkirtEastTop, vec3(23.5f, 24.0f, 10.0f));
+        SkirtEastTop = rotate(SkirtEastTop, radians(-90.0f), vec3(0, 1, 0));  // Flip to face inward
+        SkirtEastTop = rotate(SkirtEastTop, radians(90.0f), vec3(1, 0, 0));  // Face downward
+        SkirtEastTop = scale(SkirtEastTop, vec3(50.0f, 1.0f, 0.5f));
+        mat4 SkirtEastTopMVP = projection * view * SkirtEastTop;
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SkirtEastTopMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SkirtEastTop[0][0]);
+        if (skirtingBoardModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, skirtingBoardModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, skirtingBoardModel.indexCount, GL_UNSIGNED_INT, 0);
+        
+        // West wall top skirting (x=-24)
+        mat4 SkirtWestTop = mat4(1.0f);
+        SkirtWestTop = translate(SkirtWestTop, vec3(-23.5f, 24.0f, 10.0f));
+        SkirtWestTop = rotate(SkirtWestTop, radians(90.0f), vec3(0, 1, 0));  // Flip to face inward
+        SkirtWestTop = rotate(SkirtWestTop, radians(90.0f), vec3(1, 0, 0));  // Face downward
+        SkirtWestTop = scale(SkirtWestTop, vec3(50.0f, 1.0f, 0.5f));
+        mat4 SkirtWestTopMVP = projection * view * SkirtWestTop;
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SkirtWestTopMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SkirtWestTop[0][0]);
+        if (skirtingBoardModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, skirtingBoardModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, skirtingBoardModel.indexCount, GL_UNSIGNED_INT, 0);
+        
+        // North wall top skirting (z=-14) - continuous across entire wall at ceiling
+        mat4 SkirtNorthTop = mat4(1.0f);
+        SkirtNorthTop = translate(SkirtNorthTop, vec3(0.0f, 24.0f, -13.5f));
+        SkirtNorthTop = rotate(SkirtNorthTop, radians(0.0f), vec3(0, 1, 0));  // Face inward
+        SkirtNorthTop = rotate(SkirtNorthTop, radians(90.0f), vec3(1, 0, 0));  // Face downward
+        SkirtNorthTop = scale(SkirtNorthTop, vec3(50.0f, 1.0f, 0.5f));  // Full width
+        mat4 SkirtNorthTopMVP = projection * view * SkirtNorthTop;
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SkirtNorthTopMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SkirtNorthTop[0][0]);
+        if (skirtingBoardModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, skirtingBoardModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, skirtingBoardModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
+void Room1::renderSkull(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (skullModel.vertexCount > 0) {
+        glBindVertexArray(skullModel.VAO);
+        
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        
+        // Place skull on ground near spawn point, beside fossils (free space)
+        // Camera spawns around (0, 2, 5), fossils at (0, 0, 0)
+        mat4 SkullModel = mat4(1.0f);
+        SkullModel = translate(SkullModel, vec3(-2.0f, -10.0f, 17.0f));  // Free space near entrance, lifted up
+        SkullModel = rotate(SkullModel, radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));  // Stand upright on base
+        SkullModel = scale(SkullModel, vec3(10.0f, 10.0f, 10.0f));
+        mat4 SkullMVP = projection * view * SkullModel;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SkullMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SkullModel[0][0]);
+        
+        if (skullModel.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, skullModel.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, skullModel.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
