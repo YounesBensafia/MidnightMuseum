@@ -33,6 +33,8 @@ void Room1::init() {
     coffinModel = rm.loadFBXModel("model/egyptian_coffin.glb");
     mourningFemaleModel = rm.loadFBXModel("model/mourning_female.glb");
     tigerPaintingModel = rm.loadFBXModel("model/tiger_painting.glb");
+    painting2Model = rm.loadFBXModel("model/painting2.glb");
+    painting3Model = rm.loadFBXModel("model/painting3.glb");
     flashlightModel = rm.loadFBXModel("model/flashlight.glb");
     chandelierModel = rm.loadFBXModel("model/chandlier.glb");
     skirtingBoardModel = rm.loadFBXModel("model/skirtingboard.glb");
@@ -207,6 +209,7 @@ void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderCoffin(view, projection, shaderProgram);
     renderMourningFemale(view, projection, shaderProgram);
     renderTigerPainting(view, projection, shaderProgram);
+    renderAdditionalPaintings(view, projection, shaderProgram);
     if (flashlightOn) {
         renderFlashlight(view, projection, shaderProgram);
     }
@@ -781,6 +784,59 @@ void Room1::renderTigerPainting(const mat4& view, const mat4& projection, GLuint
         glUniform1i(TextureID, 0);
         glUniform1i(UseTextureID, 1);
         glDrawElements(GL_TRIANGLES, tigerPaintingModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
+void Room1::renderAdditionalPaintings(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+    GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+    GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+    GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+    
+    // Painting 2 - to the left of tiger painting (lower Z)
+    if (painting2Model.vertexCount > 0) {
+        glBindVertexArray(painting2Model.VAO);
+        
+        mat4 Painting2Model = mat4(1.0f);
+        Painting2Model = translate(Painting2Model, vec3(23.0f, 6.0f, -5.0f));  // Left of tiger, lower on wall
+        Painting2Model = rotate(Painting2Model, radians(-180.0f), vec3(0, 1, 0));  // Face west (into room)
+        Painting2Model = rotate(Painting2Model, radians(-90.0f), vec3(1, 0, 0));  // Face west (into room)
+        Painting2Model = scale(Painting2Model, vec3(0.015f, 0.015f, 0.015f));  // Much smaller
+        mat4 Painting2MVP = projection * view * Painting2Model;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Painting2MVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Painting2Model[0][0]);
+        
+        if (painting2Model.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, painting2Model.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, painting2Model.indexCount, GL_UNSIGNED_INT, 0);
+    }
+    
+    // Painting 3 - to the right of tiger painting (higher Z)
+    if (painting3Model.vertexCount > 0) {
+        glBindVertexArray(painting3Model.VAO);
+        
+        mat4 Painting3Model = mat4(1.0f);
+        Painting3Model = translate(Painting3Model, vec3(35.0f, 7.5f, 28.0f));  // Right of tiger on east wall
+        Painting3Model = rotate(Painting3Model, radians(-25.0f), vec3(0, 0, 1));  // Face west (into room)
+        Painting3Model = rotate(Painting3Model, radians(110.0f), vec3(0, 0, 1));  // Face west (into room)
+        Painting3Model = rotate(Painting3Model, radians(125.0f), vec3(0, 1, 0));  // Face west (into room)
+       
+        Painting3Model = scale(Painting3Model, vec3(1.5f, 1.5f, 1.5f));  // Match painting2 size
+        mat4 Painting3MVP = projection * view * Painting3Model;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Painting3MVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Painting3Model[0][0]);
+        
+        if (painting3Model.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, painting3Model.textureID);
+        }
+        glUniform1i(TextureID, 0);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, painting3Model.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
 

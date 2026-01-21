@@ -33,6 +33,8 @@ private:
     FBXModel coffinModel;
     FBXModel mourningFemaleModel;
     FBXModel tigerPaintingModel;
+    FBXModel painting2Model;
+    FBXModel painting3Model;
     FBXModel flashlightModel;
     FBXModel chandelierModel;
     FBXModel skirtingBoardModel;
@@ -52,6 +54,7 @@ private:
     void renderCoffin(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderMourningFemale(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderTigerPainting(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderAdditionalPaintings(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderFlashlight(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderChandelier(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderSkirtingBoards(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
