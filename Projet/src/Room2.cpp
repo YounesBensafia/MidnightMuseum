@@ -20,6 +20,7 @@ void Room2::init() {
     carpetModel = rm.loadModel("model/carpet.obj", true);
     buddhaModel = rm.loadFBXModel("model/buddha_triad.glb");
     TutaModel = rm.loadFBXModel("model/the_bust_of_pharaoh_tutankhamun.glb");
+    monsterModel = rm.loadFBXModel("model/monster__sekireinel__totem_kings_raid.glb");
     
     // Initialize Pharaonic exhibits from data
     initializeExhibits();
@@ -35,6 +36,7 @@ void Room2::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderWalls(view, projection, shaderProgram);
     renderBuddha(view, projection, shaderProgram);
     renderTuta(view, projection, shaderProgram);
+    renderMonster(view, projection, shaderProgram);
     renderExhibits(view, projection, shaderProgram);
 }
 
@@ -268,6 +270,39 @@ void Room2::renderTuta(const mat4& view, const mat4& projection, GLuint shaderPr
     }
 }
 
+void Room2::renderMonster(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (monsterModel.indexCount > 0) {
+        glBindVertexArray(monsterModel.VAO);
+        
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
+        
+        mat4 MonsterModelMatrix = mat4(1.0f);
+        MonsterModelMatrix = translate(MonsterModelMatrix, vec3(-6.5f, 6.0f, -30.5f));  // Next to Buddha
+        MonsterModelMatrix = rotate(MonsterModelMatrix, radians(100.0f), vec3(0, 0, 1));
+        MonsterModelMatrix = rotate(MonsterModelMatrix, radians(57.0f), vec3(1, 0, 0));
+        MonsterModelMatrix = scale(MonsterModelMatrix, vec3(0.01f, 0.01f, 0.01f));  // Microscopic
+        mat4 MonsterMVP = projection * view * MonsterModelMatrix;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MonsterMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &MonsterModelMatrix[0][0]);
+        
+        if (monsterModel.textureID > 0) {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, monsterModel.textureID);
+            glUniform1i(UseTextureID, 1);
+            glUniform3fv(MaterialColorID, 1, &monsterModel.baseColor[0]);
+        } else {
+            glUniform1i(UseTextureID, 0);
+            glUniform3f(MaterialColorID, 0.5f, 0.3f, 0.2f);  // Dark mystical color
+        }
+        
+        glDrawElements(GL_TRIANGLES, monsterModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
 bool Room2::checkCollision(const vec3& newPos) {
     return checkWallCollision(newPos);
 }
@@ -348,6 +383,8 @@ std::vector<ExhibitData> Room2::loadGalleryData() {
         vec3(1.0f, 1.0f, 1.0f),          // Scale: Life-sized mask
         "Gold funerary mask inlaid with lapis lazuli and carnelian, worn by pharaohs in burial"
     });
+    
+    // NOTE: Monster Totem is rendered directly via renderMonster() - not in exhibits vector
     
     return data;
 }

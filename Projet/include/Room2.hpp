@@ -44,6 +44,7 @@ private:
     Model carpetModel;
     FBXModel buddhaModel;
     FBXModel TutaModel;
+    FBXModel monsterModel;
     std::vector<Exhibit> exhibits;
     
     // Helper methods
@@ -51,6 +52,7 @@ private:
     void renderFloorAndCeiling(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderBuddha(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderTuta(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderMonster(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderExhibits(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     
     // Data-driven configuration
