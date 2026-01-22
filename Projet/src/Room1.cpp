@@ -3,6 +3,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <windows.h>
+#include <mmsystem.h>
+
+// This links the library so the "red error" goes away
+#pragma comment(lib, "winmm.lib")
 
 using namespace glm;
 
@@ -23,7 +28,19 @@ Room1::~Room1() {
 
 void Room1::init() {
     printf("\n=== Loading Room 1 ===\n");
-    
+// In Room1.cpp init()
+    MCIERROR err = mciSendStringA("open \"sounds/elegant-jazz-background-music-263181.mp3\" type mpegvideo alias bgm", NULL, 0, NULL);
+    // Set background music volume to 40% (400 out of 1000)
+    mciSendStringA("setaudio bgm volume to 500", NULL, 0, NULL);
+
+    if (err != 0) {
+        char errorBuf[256];
+        mciGetErrorStringA(err, errorBuf, 256);
+        printf("MCI Error (Open): %s\n", errorBuf);
+    } else {
+        printf("MCI: File opened successfully. Playing...\n");
+        mciSendStringA("play bgm repeat", NULL, 0, NULL);
+    }
     // Load models specific to Room 1
     carpetModel = rm.loadModel("model/carpet.obj", true);
     showcaseModel = rm.loadFBXModel("model/glass_showcase.glb");
@@ -113,44 +130,64 @@ void Room1::update(float dt, GLFWwindow* window) {
     float distanceToMourning = length(vec2(cameraPos.x - mourningPosition.x, cameraPos.z - mourningPosition.z));
     playerNearMourning = (distanceToMourning < interactionDistance);
 
-    // Door is at X = -2.0, Z = -14.0
     float distanceToDoor = length(vec2(cameraPos.x - (-2.0f), cameraPos.z - (-14.0f)));
     playerNearDoor = (distanceToDoor < interactionDistance);
     
     // --- 2. INPUT HANDLING (TOGGLES) ---
 
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-        if (!eKeyPressed) {
-            // Door Toggle
-            if (playerNearDoor) {
-                isDoorOpening = !isDoorOpening;
-                printf("Door state: %s\n", isDoorOpening ? "OPENING" : "CLOSING");
-            }
-            // Effigy Toggle
-            else if (playerNearEffigy && !playerNearCoffin && !playerNearMourning) {
-                effigyAnimating = !effigyAnimating;
-                if (effigyAnimating) tableSpotlights[0] = true;
-            }
-            // Coffin Toggle
-            else if (playerNearCoffin && !playerNearEffigy && !playerNearMourning) {
-                coffinAnimating = !coffinAnimating;
-                if (coffinAnimating) tableSpotlights[2] = true;
-            }
-            // Mourning Statue Toggle
-            else if (playerNearMourning && !playerNearEffigy && !playerNearCoffin) {
-                mourningActivated = !mourningActivated;
-                if (mourningActivated) tableSpotlights[1] = true;
-            }
-            eKeyPressed = true;
-        }
-    } else {
-        eKeyPressed = false;
+    
+
+// Flashlight Toggle (F Key)
+if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
+    if (!fKeyPressed) {
+        flashlightOn = !flashlightOn;
+        // Use filename directly for the new PlaySound method
+        playSFX("flashlight_click.wav"); 
+        fKeyPressed = true;
     }
+} else {
+    fKeyPressed = false;
+}
+
+// Interactions (E Key)
+if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+    if (!eKeyPressed) {
+        if (playerNearDoor) {
+            isDoorOpening = !isDoorOpening;
+            playSFX("door_creak.wav");
+            printf("Door state: %s\n", isDoorOpening ? "OPENING" : "CLOSING");
+        }
+        else if (playerNearEffigy && !playerNearCoffin && !playerNearMourning) {
+            effigyAnimating = !effigyAnimating;
+            if (effigyAnimating) {
+                tableSpotlights[0] = true;
+                playSFX("light_switch.wav");
+            }
+        }
+        else if (playerNearCoffin && !playerNearEffigy && !playerNearMourning) {
+            coffinAnimating = !coffinAnimating;
+            if (coffinAnimating) {
+                tableSpotlights[2] = true;
+                playSFX("light_switch.wav");
+            }
+        }
+        else if (playerNearMourning && !playerNearEffigy && !playerNearCoffin) {
+            mourningActivated = !mourningActivated;
+            if (mourningActivated) {
+                tableSpotlights[1] = true;
+                playSFX("light_switch.wav");
+            }
+        }
+        eKeyPressed = true;
+    }
+} else {
+    eKeyPressed = false;
+}
 
     // --- 3. ANIMATION CALCULATIONS ---
 
-    // Door Rotation (0 to 90 degrees)
-    float doorSpeed = 120.0f; // Degrees per second
+    // Door Rotation
+    float doorSpeed = 120.0f;
     if (isDoorOpening) {
         if (doorOpenAngle < 90.0f) doorOpenAngle += doorSpeed * dt;
     } else {
@@ -182,7 +219,6 @@ void Room1::update(float dt, GLFWwindow* window) {
         }
     }
 }
-
 void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgram, bool flashlightOn) {
     GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
     GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
@@ -210,6 +246,17 @@ void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderWallLamps(view, projection, shaderProgram);
     renderEKeyPrompt(projection);
     renderDoor(view, projection, shaderProgram); // Add this
+}
+
+
+void Room1::playSFX(const std::string& filename) {
+    // Construct the path
+    std::string path = "sounds/" + filename;
+    
+    // SND_ASYNC: Play in background, don't wait (No Lag)
+    // SND_FILENAME: The first parameter is a path
+    // SND_NODEFAULT: Don't play a 'ding' if file is missing
+    PlaySoundA(path.c_str(), NULL, SND_ASYNC | SND_FILENAME | SND_NODEFAULT);
 }
 
 void Room1::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLuint shaderProgram) {
@@ -877,7 +924,7 @@ void Room1::renderAdditionalPaintings(const mat4& view, const mat4& projection, 
         glBindVertexArray(painting3Model.VAO);
         
         mat4 Painting3Model = mat4(1.0f);
-        Painting3Model = translate(Painting3Model, vec3(36.0f, 7.5f, 28.0f));  // Right of tiger on east wall
+        Painting3Model = translate(Painting3Model, vec3(35.5f, 7.5f, 28.0f));  // Right of tiger on east wall
         Painting3Model = rotate(Painting3Model, radians(-25.0f), vec3(0, 0, 1));  // Face west (into room)
         Painting3Model = rotate(Painting3Model, radians(110.0f), vec3(0, 0, 1));  // Face west (into room)
         Painting3Model = rotate(Painting3Model, radians(125.0f), vec3(0, 1, 0));  // Face west (into room)

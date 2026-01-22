@@ -27,6 +27,15 @@ private:
     bool isDoorOpening = false;   // Toggle state
     float doorTargetAngle = 90.0f; // Maximum open position
     bool playerNearDoor = false;
+
+
+
+    // --- ADD THESE NEW VARIABLES ---
+    bool fKeyPressed = false;    // Tracks if F is being held
+    bool flashlightOn = false;   // Tracks if flashlight is actually ON
+    
+    // --- ADD THIS FUNCTION PROTOTYPE ---
+    void playSFX(const std::string& alias);
     // Models specific to Room 1
     Model carpetModel;
     FBXModel showcaseModel;
