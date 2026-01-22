@@ -40,18 +40,19 @@ public:
     void processKeyboard(int direction, float deltaTime) {
         float velocity = movementSpeed * deltaTime;
         
+        // Create horizontal-only movement vectors (no Y component)
+        glm::vec3 frontFlat = glm::normalize(glm::vec3(front.x, 0.0f, front.z));
+        glm::vec3 rightFlat = glm::normalize(glm::vec3(right.x, 0.0f, right.z));
+        
         // 0: FORWARD, 1: BACKWARD, 2: LEFT, 3: RIGHT
         if (direction == 0)
-            position += front * velocity;
+            position += frontFlat * velocity;
         if (direction == 1)
-            position -= front * velocity;
+            position -= frontFlat * velocity;
         if (direction == 2)
-            position -= right * velocity;
+            position -= rightFlat * velocity;
         if (direction == 3)
-            position += right * velocity;
-            
-        // Keep camera at human height in museum
-        position.y = 2.0f; // Eye level
+            position += rightFlat * velocity;
     }
 
     void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true) {
@@ -79,7 +80,6 @@ public:
             zoom = 45.0f;
     }
 
-private:
     void updateCameraVectors() {
         glm::vec3 direction;
         direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -90,6 +90,8 @@ private:
         right = glm::normalize(glm::cross(front, worldUp));
         up = glm::normalize(glm::cross(right, front));
     }
+
+private:
 };
 
 #endif

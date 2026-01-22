@@ -12,14 +12,13 @@ out vec3 vPos;
 out vec3 vNormal;
 out vec2 vTexture;
 
-void main(){    
-
+void main(){
     gl_Position = MVP * vec4(VertexPosition, 1);
-    
     vPos = vec3(Model * vec4(VertexPosition, 1));
     vNormal = mat3(transpose(inverse(Model))) * VertexNormal;
 
-    vTexture = VertexTexture;
+    // FIX: Remove the * 3.0 here
+    vTexture = VertexTexture; 
     
-    Vcolor = VertexNormal;
+    Vcolor = VertexNormal; 
 }
