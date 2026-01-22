@@ -61,7 +61,7 @@ A dedicated mode that allows users to lock onto an artifact and rotate it 360 de
 1. **Prerequisites:** Ensure CMake and a C++17 compatible compiler are installed.
 2. **Clone the repository:**
 ```bash
-git clone https://github.com/username/night-at-the-museum.git
+git clone https://github.com/YounesBensafia/MidnightMuseum.git
 
 ```
 
