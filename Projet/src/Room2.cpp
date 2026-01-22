@@ -313,7 +313,7 @@ void Room2::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLui
         
         // CEILING - Second Room
         mat4 Ceiling2 = mat4(1.0f);
-        Ceiling2 = translate(Ceiling2, vec3(0.0f, 12.0f, -28.0f));
+        Ceiling2 = translate(Ceiling2, vec3(0.0f, 16.0f, -28.0f)); // Raise ceiling higher
         Ceiling2 = rotate(Ceiling2, radians(180.0f), vec3(1, 0, 0));
         Ceiling2 = scale(Ceiling2, vec3(6.0f, 1.0f, 5.0f));
         mat4 Ceiling2MVP = projection * view * Ceiling2;
@@ -345,9 +345,9 @@ void Room2::renderWalls(const mat4& view, const mat4& projection, GLuint shaderP
         // Second Room South Wall - WITH DOORWAY FROM HALLWAY
         // South wall - Left side of doorway (front face)
         mat4 Room2SouthLeft = mat4(1.0f);
-        Room2SouthLeft = translate(Room2SouthLeft, vec3(-7.0f, 4.0f, -23.0f));
+        Room2SouthLeft = translate(Room2SouthLeft, vec3(-7.0f, 8.0f, -23.0f)); // Raise wall center
         Room2SouthLeft = rotate(Room2SouthLeft, radians(-90.0f), vec3(1, 0, 0));
-        Room2SouthLeft = scale(Room2SouthLeft, vec3(2.5f, 1.0f, 4.0f));
+        Room2SouthLeft = scale(Room2SouthLeft, vec3(2.5f, 2.0f, 4.0f)); // Double height
         mat4 Room2SouthLeftMVP = projection * view * Room2SouthLeft;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2SouthLeftMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2SouthLeft[0][0]);
@@ -355,9 +355,9 @@ void Room2::renderWalls(const mat4& view, const mat4& projection, GLuint shaderP
         
         // South wall - Left side (back face)
         mat4 Room2SouthLeftBack = mat4(1.0f);
-        Room2SouthLeftBack = translate(Room2SouthLeftBack, vec3(-7.0f, 4.0f, -23.0f + wallThickness));
+        Room2SouthLeftBack = translate(Room2SouthLeftBack, vec3(-7.0f, 8.0f, -23.0f + wallThickness));
         Room2SouthLeftBack = rotate(Room2SouthLeftBack, radians(90.0f), vec3(1, 0, 0));
-        Room2SouthLeftBack = scale(Room2SouthLeftBack, vec3(2.5f, 1.0f, 4.0f));
+        Room2SouthLeftBack = scale(Room2SouthLeftBack, vec3(2.5f, 2.0f, 4.0f));
         mat4 Room2SouthLeftBackMVP = projection * view * Room2SouthLeftBack;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2SouthLeftBackMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2SouthLeftBack[0][0]);
@@ -365,9 +365,9 @@ void Room2::renderWalls(const mat4& view, const mat4& projection, GLuint shaderP
         
         // South wall - Right side of doorway (front face)
         mat4 Room2SouthRight = mat4(1.0f);
-        Room2SouthRight = translate(Room2SouthRight, vec3(7.0f, 4.0f, -23.0f));
+        Room2SouthRight = translate(Room2SouthRight, vec3(7.0f, 8.0f, -23.0f));
         Room2SouthRight = rotate(Room2SouthRight, radians(-90.0f), vec3(1, 0, 0));
-        Room2SouthRight = scale(Room2SouthRight, vec3(2.5f, 1.0f, 4.0f));
+        Room2SouthRight = scale(Room2SouthRight, vec3(2.5f, 2.0f, 4.0f));
         mat4 Room2SouthRightMVP = projection * view * Room2SouthRight;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2SouthRightMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2SouthRight[0][0]);
@@ -375,9 +375,9 @@ void Room2::renderWalls(const mat4& view, const mat4& projection, GLuint shaderP
         
         // South wall - Right side (back face)
         mat4 Room2SouthRightBack = mat4(1.0f);
-        Room2SouthRightBack = translate(Room2SouthRightBack, vec3(7.0f, 4.0f, -23.0f + wallThickness));
+        Room2SouthRightBack = translate(Room2SouthRightBack, vec3(7.0f, 8.0f, -23.0f + wallThickness));
         Room2SouthRightBack = rotate(Room2SouthRightBack, radians(90.0f), vec3(1, 0, 0));
-        Room2SouthRightBack = scale(Room2SouthRightBack, vec3(2.5f, 1.0f, 4.0f));
+        Room2SouthRightBack = scale(Room2SouthRightBack, vec3(2.5f, 2.0f, 4.0f));
         mat4 Room2SouthRightBackMVP = projection * view * Room2SouthRightBack;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2SouthRightBackMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2SouthRightBack[0][0]);
@@ -385,7 +385,7 @@ void Room2::renderWalls(const mat4& view, const mat4& projection, GLuint shaderP
         
         // South wall - Top of doorway (front face)
         mat4 Room2SouthTop = mat4(1.0f);
-        Room2SouthTop = translate(Room2SouthTop, vec3(0.0f, 6.5f, -23.0f));
+        Room2SouthTop = translate(Room2SouthTop, vec3(0.0f, 13.0f, -23.0f)); // Raise top
         Room2SouthTop = rotate(Room2SouthTop, radians(-90.0f), vec3(1, 0, 0));
         Room2SouthTop = scale(Room2SouthTop, vec3(2.0f, 1.0f, 1.5f));
         mat4 Room2SouthTopMVP = projection * view * Room2SouthTop;
@@ -395,7 +395,7 @@ void Room2::renderWalls(const mat4& view, const mat4& projection, GLuint shaderP
         
         // South wall - Top (back face)
         mat4 Room2SouthTopBack = mat4(1.0f);
-        Room2SouthTopBack = translate(Room2SouthTopBack, vec3(0.0f, 6.5f, -23.0f + wallThickness));
+        Room2SouthTopBack = translate(Room2SouthTopBack, vec3(0.0f, 13.0f, -23.0f + wallThickness));
         Room2SouthTopBack = rotate(Room2SouthTopBack, radians(90.0f), vec3(1, 0, 0));
         Room2SouthTopBack = scale(Room2SouthTopBack, vec3(2.0f, 1.0f, 1.5f));
         mat4 Room2SouthTopBackMVP = projection * view * Room2SouthTopBack;
@@ -405,18 +405,18 @@ void Room2::renderWalls(const mat4& view, const mat4& projection, GLuint shaderP
         
         // Second Room North Wall (far end) with thickness
         mat4 Room2North = mat4(1.0f);
-        Room2North = translate(Room2North, vec3(0.0f, 4.0f, -38.0f));
+        Room2North = translate(Room2North, vec3(0.0f, 8.0f, -38.0f));
         Room2North = rotate(Room2North, radians(90.0f), vec3(1, 0, 0));
-        Room2North = scale(Room2North, vec3(6.0f, 1.0f, 4.0f));
+        Room2North = scale(Room2North, vec3(6.0f, 2.0f, 4.0f));
         mat4 Room2NorthMVP = projection * view * Room2North;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2NorthMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2North[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
         
         mat4 Room2NorthBack = mat4(1.0f);
-        Room2NorthBack = translate(Room2NorthBack, vec3(0.0f, 4.0f, -38.0f - wallThickness));
+        Room2NorthBack = translate(Room2NorthBack, vec3(0.0f, 8.0f, -38.0f - wallThickness));
         Room2NorthBack = rotate(Room2NorthBack, radians(-90.0f), vec3(1, 0, 0));
-        Room2NorthBack = scale(Room2NorthBack, vec3(6.0f, 1.0f, 4.0f));
+        Room2NorthBack = scale(Room2NorthBack, vec3(6.0f, 2.0f, 4.0f));
         mat4 Room2NorthBackMVP = projection * view * Room2NorthBack;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2NorthBackMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2NorthBack[0][0]);
@@ -424,20 +424,20 @@ void Room2::renderWalls(const mat4& view, const mat4& projection, GLuint shaderP
         
         // Second Room East Wall (with thickness)
         mat4 Room2East = mat4(1.0f);
-        Room2East = translate(Room2East, vec3(12.0f, 4.0f, -28.0f));
+        Room2East = translate(Room2East, vec3(12.0f, 8.0f, -28.0f));
         Room2East = rotate(Room2East, radians(90.0f), vec3(1, 0, 0));
         Room2East = rotate(Room2East, radians(90.0f), vec3(0, 0, 1));
-        Room2East = scale(Room2East, vec3(5.0f, 1.0f, 4.0f));
+        Room2East = scale(Room2East, vec3(5.0f, 2.0f, 4.0f));
         mat4 Room2EastMVP = projection * view * Room2East;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2EastMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2East[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
         
         mat4 Room2EastBack = mat4(1.0f);
-        Room2EastBack = translate(Room2EastBack, vec3(12.0f + wallThickness, 4.0f, -28.0f));
+        Room2EastBack = translate(Room2EastBack, vec3(12.0f + wallThickness, 8.0f, -28.0f));
         Room2EastBack = rotate(Room2EastBack, radians(90.0f), vec3(1, 0, 0));
         Room2EastBack = rotate(Room2EastBack, radians(-90.0f), vec3(0, 0, 1));
-        Room2EastBack = scale(Room2EastBack, vec3(5.0f, 1.0f, 4.0f));
+        Room2EastBack = scale(Room2EastBack, vec3(5.0f, 2.0f, 4.0f));
         mat4 Room2EastBackMVP = projection * view * Room2EastBack;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2EastBackMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2EastBack[0][0]);
@@ -445,20 +445,20 @@ void Room2::renderWalls(const mat4& view, const mat4& projection, GLuint shaderP
         
         // Second Room West Wall (with thickness)
         mat4 Room2West = mat4(1.0f);
-        Room2West = translate(Room2West, vec3(-12.0f, 4.0f, -28.0f));
+        Room2West = translate(Room2West, vec3(-12.0f, 8.0f, -28.0f));
         Room2West = rotate(Room2West, radians(90.0f), vec3(1, 0, 0));
         Room2West = rotate(Room2West, radians(-90.0f), vec3(0, 0, 1));
-        Room2West = scale(Room2West, vec3(5.0f, 1.0f, 4.0f));
+        Room2West = scale(Room2West, vec3(5.0f, 2.0f, 4.0f));
         mat4 Room2WestMVP = projection * view * Room2West;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2WestMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2West[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
         
         mat4 Room2WestBack = mat4(1.0f);
-        Room2WestBack = translate(Room2WestBack, vec3(-12.0f - wallThickness, 4.0f, -28.0f));
+        Room2WestBack = translate(Room2WestBack, vec3(-12.0f - wallThickness, 8.0f, -28.0f));
         Room2WestBack = rotate(Room2WestBack, radians(90.0f), vec3(1, 0, 0));
         Room2WestBack = rotate(Room2WestBack, radians(90.0f), vec3(0, 0, 1));
-        Room2WestBack = scale(Room2WestBack, vec3(5.0f, 1.0f, 4.0f));
+        Room2WestBack = scale(Room2WestBack, vec3(5.0f, 2.0f, 4.0f));
         mat4 Room2WestBackMVP = projection * view * Room2WestBack;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2WestBackMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2WestBack[0][0]);
