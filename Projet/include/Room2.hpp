@@ -41,6 +41,27 @@ private:
     Application& app;
     ResourceManager& rm;
     
+    // --- DOOR MODELS ---
+    FBXModel doorFrameModel;
+    FBXModel doorModel;
+
+    // --- DOOR STATE ---
+    float doorOpenAngle = 0.0f;
+    bool isDoorOpening = false;
+    bool playerNearDoor = false;
+    bool eKeyPressed = false;
+    float interactionDistance = 4.0f;
+
+    // --- DOOR POSITION (Constants) ---
+    // Change these values to place the door in your Room 2 wall opening
+    const float doorX = -2.0f;  
+    const float doorY = 3.0f;
+    const float doorZ = -23.0f; 
+
+    // --- HELPER FUNCTIONS ---
+    void playSFX(const std::string& filename);
+    void renderDoor(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    
     Model carpetModel;
     FBXModel buddhaModel;
     FBXModel TutaModel;
@@ -54,7 +75,7 @@ private:
     FBXModel modelSphinx;
     FBXModel showcaseModel;
     FBXModel joseModel;
-    
+    FBXModel spotlightModel;
     std::vector<Exhibit> exhibits;
     
     // Helper methods
@@ -72,7 +93,7 @@ private:
     void renderExhibits(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderSphinx(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderJose(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
-
+    void renderWallLamps(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
 
     // Data-driven configuration
     std::vector<ExhibitData> loadGalleryData();

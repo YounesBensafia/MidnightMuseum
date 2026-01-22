@@ -3,6 +3,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glad/glad.h>
 #include <iostream>
+#include <windows.h>
+#include <mmsystem.h>
 // Render the Jose (Head of an Official) statue (joseModel)
 void Room2::renderJose(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram) {
     if (joseModel.indexCount > 0) {
@@ -314,14 +316,40 @@ void Room2::init() {
                 // Debug: report loaded texture IDs (carpet is a Model without textureID)
                 printf("Loaded models textures: buddha=%u, tuta=%u, monster=%u, seki=%u\n",
                     buddhaModel.textureID, TutaModel.textureID, monsterModel.textureID, sekiModel.textureID);
-    
+    doorFrameModel = rm.loadFBXModel("model/doorframe.glb");
+    doorModel = rm.loadFBXModel("model/door.glb");
+    spotlightModel = rm.loadFBXModel("model/lamp.glb");
     // Initialize Pharaonic exhibits from data
     initializeExhibits();
 }
 
 void Room2::update(float dt, GLFWwindow* window) {
-    // Room2-specific interactions go here
-    // Example: Buddha glow effect, incense smoke animation, etc.
+    glm::vec3 cameraPos = app.getCamera().position;
+
+    // 1. Check distance to door (Update coordinates to match Room 2's opening)
+    // Replace (X, Z) with the actual position of your Room 2 door opening
+    float distanceToDoor = glm::length(glm::vec2(cameraPos.x - (doorX), cameraPos.z - (doorZ)));
+    playerNearDoor = (distanceToDoor < interactionDistance);
+
+    // 2. Interaction (E Key)
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        if (!eKeyPressed && playerNearDoor) {
+            isDoorOpening = !isDoorOpening;
+            playSFX("door_creak.wav");
+            eKeyPressed = true;
+        }
+    } else {
+        eKeyPressed = false;
+    }
+
+    // 3. Animation Logic
+    float doorSpeed = 120.0f;
+    if (isDoorOpening) {
+        if (doorOpenAngle < 90.0f) doorOpenAngle += doorSpeed * dt;
+    } else {
+        if (doorOpenAngle > 0.0f) doorOpenAngle -= doorSpeed * dt;
+    }
+    doorOpenAngle = glm::clamp(doorOpenAngle, 0.0f, 90.0f);
 }
 
 void Room2::render(const mat4& view, const mat4& projection, GLuint shaderProgram) {
@@ -343,6 +371,8 @@ void Room2::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderPyramid(view, projection, shaderProgram);
     renderSphinx(view, projection, shaderProgram);
     renderJose(view, projection, shaderProgram);
+    renderDoor(view, projection, shaderProgram);
+    renderWallLamps(view, projection, shaderProgram);
 
 }
 
@@ -357,7 +387,7 @@ void Room2::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLui
         
         // CEILING - Second Room (extended depth only)
         mat4 Ceiling2 = mat4(1.0f);
-        Ceiling2 = translate(Ceiling2, vec3(0.0f, 12.0f, -45.5f)); // center of new depth: (-28 + -63) / 2 = -45.5
+        Ceiling2 = translate(Ceiling2, vec3(0.0f, 12.0f, -50.5f)); // center of new depth: (-28 + -63) / 2 = -45.5
         Ceiling2 = rotate(Ceiling2, radians(180.0f), vec3(1, 0, 0));
         Ceiling2 = scale(Ceiling2, vec3(6.0f, 1.0f, 35.0f/2.0f)); // depth from z=-23 to z=-63 is 40, so half-depth is 20
         mat4 Ceiling2MVP = projection * view * Ceiling2;
@@ -385,133 +415,171 @@ void Room2::renderWalls(const mat4& view, const mat4& projection, GLuint shaderP
         
         float wallThickness = 0.3f;
         
-        // === SECOND ROOM WALLS ===
-        // Second Room South Wall - WITH DOORWAY FROM HALLWAY (SAME SIZE AS ROOM1)
-        // South wall - Left side of doorway (front face)
+        // === SECOND ROOM SOUTH WALLS ===
+        // Front Face - Left side
         mat4 Room2SouthLeft = mat4(1.0f);
-        Room2SouthLeft = translate(Room2SouthLeft, vec3(-14.0f, 4.0f, -23.0f));
+        Room2SouthLeft = translate(Room2SouthLeft, vec3(-14.0f, 4.0f, -23.0f)); // Original Coord
         Room2SouthLeft = rotate(Room2SouthLeft, radians(-90.0f), vec3(1, 0, 0));
-        Room2SouthLeft = scale(Room2SouthLeft, vec3(5.5f, 1.5f, 4.0f));
-        mat4 Room2SouthLeftMVP = projection * view * Room2SouthLeft;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2SouthLeftMVP[0][0]);
+        Room2SouthLeft = scale(Room2SouthLeft, vec3(5.7f, 1.5f, 4.0f)); // Scale increased from 5.5 to 5.7
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projection * view * Room2SouthLeft)[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2SouthLeft[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
         
-        // South wall - Left side (back face)
-        mat4 Room2SouthLeftBack = mat4(1.0f);
-        Room2SouthLeftBack = translate(Room2SouthLeftBack, vec3(-14.0f, 4.0f, -23.0f + wallThickness));
-        Room2SouthLeftBack = rotate(Room2SouthLeftBack, radians(90.0f), vec3(1, 0, 0));
-        Room2SouthLeftBack = scale(Room2SouthLeftBack, vec3(5.5f, 1.0f, 4.0f));
-        mat4 Room2SouthLeftBackMVP = projection * view * Room2SouthLeftBack;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2SouthLeftBackMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2SouthLeftBack[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
-        
-        // South wall - Right side of doorway (front face)
+        // Front Face - Right side
         mat4 Room2SouthRight = mat4(1.0f);
-        Room2SouthRight = translate(Room2SouthRight, vec3(14.0f, 4.0f, -23.0f));
+        Room2SouthRight = translate(Room2SouthRight, vec3(14.0f, 4.0f, -23.0f)); // Original Coord
         Room2SouthRight = rotate(Room2SouthRight, radians(-90.0f), vec3(1, 0, 0));
-        Room2SouthRight = scale(Room2SouthRight, vec3(5.5f, 1.0f, 4.0f));
-        mat4 Room2SouthRightMVP = projection * view * Room2SouthRight;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2SouthRightMVP[0][0]);
+        Room2SouthRight = scale(Room2SouthRight, vec3(5.7f, 1.0f, 4.0f)); // Scale increased from 5.5 to 5.7
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projection * view * Room2SouthRight)[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2SouthRight[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
         
-        // South wall - Right side (back face)
-        mat4 Room2SouthRightBack = mat4(1.0f);
-        Room2SouthRightBack = translate(Room2SouthRightBack, vec3(14.0f, 4.0f, -23.0f + wallThickness));
-        Room2SouthRightBack = rotate(Room2SouthRightBack, radians(90.0f), vec3(1, 0, 0));
-        Room2SouthRightBack = scale(Room2SouthRightBack, vec3(5.5f, 1.0f, 4.0f));
-        mat4 Room2SouthRightBackMVP = projection * view * Room2SouthRightBack;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2SouthRightBackMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2SouthRightBack[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
-        
-        // South wall - Top of doorway (front face)
+        // Top of doorway
         mat4 Room2SouthTop = mat4(1.0f);
-        Room2SouthTop = translate(Room2SouthTop, vec3(0.0f, 10.0f, -23.0f));
+        Room2SouthTop = translate(Room2SouthTop, vec3(0.0f, 10.0f, -23.0f)); // Original Coord
         Room2SouthTop = rotate(Room2SouthTop, radians(-90.0f), vec3(1, 0, 0));
-        Room2SouthTop = scale(Room2SouthTop, vec3(4.5f, 2.0f, 2.5f));
-        mat4 Room2SouthTopMVP = projection * view * Room2SouthTop;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2SouthTopMVP[0][0]);
+        Room2SouthTop = scale(Room2SouthTop, vec3(4.7f, 2.0f, 2.5f)); // Scale increased from 4.5 to 4.7
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projection * view * Room2SouthTop)[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2SouthTop[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
-        //
-        // South wall - Top (back face)
-        mat4 Room2SouthTopBack = mat4(1.0f);
-        Room2SouthTopBack = translate(Room2SouthTopBack, vec3(0.0f, 10.0f, -23.0f + wallThickness));
-        Room2SouthTopBack = rotate(Room2SouthTopBack, radians(90.0f), vec3(1, 0, 0));
-        Room2SouthTopBack = scale(Room2SouthTopBack, vec3(4.5f, 2.0f, 2.5f));
-        mat4 Room2SouthTopBackMVP = projection * view * Room2SouthTopBack;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2SouthTopBackMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2SouthTopBack[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
-        
-        // Second Room North Wall (far end) with thickness (extended depth only)
+
+        // === NORTH WALL (Far back) ===
         mat4 Room2North = mat4(1.0f);
-        Room2North = translate(Room2North, vec3(0.0f, 4.0f, -40.0f)); // move north wall further back (original -38.0f, now -63.0f)
+        Room2North = translate(Room2North, vec3(0.0f, 4.0f, -40.0f)); // Original Coord
         Room2North = rotate(Room2North, radians(90.0f), vec3(1, 0, 0));
-        Room2North = scale(Room2North, vec3(6.0f, 1.0f, 4.0f));
-        mat4 Room2NorthMVP = projection * view * Room2North;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2NorthMVP[0][0]);
+        Room2North = scale(Room2North, vec3(6.2f, 1.0f, 4.0f)); // Scale increased from 6.0 to 6.2
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projection * view * Room2North)[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2North[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
-        
-        mat4 Room2NorthBack = mat4(1.0f);
-        Room2NorthBack = translate(Room2NorthBack, vec3(0.0f, 4.0f, -45.0f - wallThickness));
-        Room2NorthBack = rotate(Room2NorthBack, radians(-90.0f), vec3(1, 0, 0));
-        Room2NorthBack = scale(Room2NorthBack, vec3(6.0f, 1.0f, 4.0f));
-        mat4 Room2NorthBackMVP = projection * view * Room2NorthBack;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2NorthBackMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2NorthBack[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
-        
-        // Second Room East Wall (with thickness)
-        mat4 Room2East = mat4(1.0f);
-        // Extend wall from z = -23 to z = -63 (center z = -43, scale.z = 40)
-        Room2East = translate(Room2East, vec3(12.0f, 4.0f, -33.0f));
-        Room2East = rotate(Room2East, radians(90.0f), vec3(1, 0, 0));
-        Room2East = rotate(Room2East, radians(90.0f), vec3(0, 0, 1));
-        Room2East = scale(Room2East, vec3(5.0f, 1.0f, 100.0f));
-        mat4 Room2EastMVP = projection * view * Room2East;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2EastMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2East[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
-        
-        mat4 Room2EastBack = mat4(1.0f);
-        Room2EastBack = translate(Room2EastBack, vec3(12.0f + wallThickness, 4.0f, -33.0f));
-        Room2EastBack = rotate(Room2EastBack, radians(90.0f), vec3(1, 0, 0));
-        Room2EastBack = rotate(Room2EastBack, radians(-90.0f), vec3(0, 0, 1));
-        Room2EastBack = scale(Room2EastBack, vec3(5.0f, 1.0f, 100.0f));
-        mat4 Room2EastBackMVP = projection * view * Room2EastBack;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2EastBackMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2EastBack[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
-        
-        // Second Room West Wall (with thickness)
+
+        // === EAST & WEST SIDE WALLS ===
+        // West Wall
         mat4 Room2West = mat4(1.0f);
-        // Extend wall from z = -23 to z = -63 (center z = -43, scale.z = 40)
-        Room2West = translate(Room2West, vec3(-12.0f, 4.0f, -33.0f));
+        Room2West = translate(Room2West, vec3(-12.0f, 4.0f, -33.0f)); // Original Coord
         Room2West = rotate(Room2West, radians(90.0f), vec3(1, 0, 0));
         Room2West = rotate(Room2West, radians(-90.0f), vec3(0, 0, 1));
-        Room2West = scale(Room2West, vec3(5.0f, 1.0f, 100.0f));
-        mat4 Room2WestMVP = projection * view * Room2West;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2WestMVP[0][0]);
+        Room2West = scale(Room2West, vec3(5.0f, 1.0f, 105.0f)); // Extra length to reach the walls
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projection * view * Room2West)[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2West[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
-        
-        mat4 Room2WestBack = mat4(1.0f);
-        Room2WestBack = translate(Room2WestBack, vec3(-12.0f - wallThickness, 4.0f, -33.0f));
-        Room2WestBack = rotate(Room2WestBack, radians(90.0f), vec3(1, 0, 0));
-        Room2WestBack = rotate(Room2WestBack, radians(90.0f), vec3(0, 0, 1));
-        Room2WestBack = scale(Room2WestBack, vec3(5.0f, 1.0f, 100.0f));
-        mat4 Room2WestBackMVP = projection * view * Room2WestBack;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Room2WestBackMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2WestBack[0][0]);
+
+        // East Wall
+        mat4 Room2East = mat4(1.0f);
+        Room2East = translate(Room2East, vec3(12.0f, 4.0f, -33.0f)); // Original Coord
+        Room2East = rotate(Room2East, radians(90.0f), vec3(1, 0, 0));
+        Room2East = rotate(Room2East, radians(90.0f), vec3(0, 0, 1));
+        Room2East = scale(Room2East, vec3(5.0f, 1.0f, 105.0f)); // Extra length to reach the walls
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projection * view * Room2East)[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Room2East[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
     }
 }
+void Room2::renderWallLamps(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram) {
+    if (spotlightModel.indexCount > 0) {
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
 
+        // Use your confirmed coordinates
+        float lampY = 14.0f;  
+        float lampZ = -29.0f; 
+        float xPositions[] = { -7.0f, 0.0f, 7.0f };
+
+        glBindVertexArray(spotlightModel.VAO);
+
+        for (int i = 0; i < 3; i++) {
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(xPositions[i], lampY, lampZ));
+            model = glm::scale(model, glm::vec3(4.0f)); // Use your adjusted scale
+
+            glm::mat4 mvp = projection * view * model;
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+            glUniformMatrix4fv(ModelID, 1, GL_FALSE, &model[0][0]);
+
+            glActiveTexture(GL_TEXTURE0);
+            if (spotlightModel.textureID > 0) {
+                glBindTexture(GL_TEXTURE_2D, spotlightModel.textureID);
+                if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+                glUniform1i(UseTextureID, 1);
+                glUniform3fv(MaterialColorID, 1, &spotlightModel.baseColor[0]);
+            } else {
+                glBindTexture(GL_TEXTURE_2D, 0);
+                glUniform1i(UseTextureID, 0);
+                glUniform3f(MaterialColorID, 1.0f, 1.0f, 1.0f);
+            }
+
+            glDrawElements(GL_TRIANGLES, spotlightModel.indexCount, GL_UNSIGNED_INT, 0);
+        }
+        glBindVertexArray(0);
+    }
+}
+void Room2::renderDoor(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram) {
+    GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+    GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+    GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+    GLuint TextureID = glGetUniformLocation(shaderProgram, "textureSampler");
+
+    glm::vec3 doorPos = glm::vec3(doorX, doorY, doorZ); 
+    float scaleX = 0.012f; 
+    float scaleY = 0.012f;
+    float scaleZ = 0.025f;
+
+    // --- Render Frame ---
+    if (doorFrameModel.vertexCount > 0) {
+        glBindVertexArray(doorFrameModel.VAO);
+        
+        // TEXTURE FIX: Bind door frame texture or disable textures
+        if (doorFrameModel.textureID > 0) {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, doorFrameModel.textureID);
+            glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1);
+        } else {
+            glUniform1i(UseTextureID, 0); // Disable texture if model has none
+        }
+
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), doorPos);
+        model = glm::scale(model, glm::vec3(scaleX, scaleY, scaleZ));
+        glm::mat4 mvp = projection * view * model;
+
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &model[0][0]);
+        glDrawElements(GL_TRIANGLES, doorFrameModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+
+    // --- Render Rotating Door ---
+    if (doorModel.vertexCount > 0) {
+        glBindVertexArray(doorModel.VAO);
+
+        // TEXTURE FIX: Bind door texture
+        if (doorModel.textureID > 0) {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, doorModel.textureID);
+            glUniform1i(UseTextureID, 1);
+        } else {
+            glUniform1i(UseTextureID, 0);
+        }
+
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), doorPos);
+        model = glm::rotate(model, glm::radians(doorOpenAngle), glm::vec3(0, 1, 0));
+        model = glm::scale(model, glm::vec3(scaleX, scaleY, scaleZ));
+        glm::mat4 mvp = projection * view * model;
+
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &model[0][0]);
+        glDrawElements(GL_TRIANGLES, doorModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+    
+    // Clean up: Unbind texture so the next model doesn't use the door's texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void Room2::playSFX(const std::string& filename) {
+    std::string path = "sounds/" + filename;
+    PlaySoundA(path.c_str(), NULL, SND_ASYNC | SND_FILENAME | SND_NODEFAULT);
+}
 void Room2::renderBuddha(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     if (buddhaModel.vertexCount > 0) {
         glBindVertexArray(buddhaModel.VAO);
