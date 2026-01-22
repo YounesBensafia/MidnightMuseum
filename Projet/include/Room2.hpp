@@ -53,6 +53,7 @@ private:
     FBXModel modelPyramid;
     FBXModel modelSphinx;
     FBXModel showcaseModel;
+    FBXModel joseModel;
     
     std::vector<Exhibit> exhibits;
     
@@ -70,6 +71,7 @@ private:
     void renderPyramid(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderExhibits(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderSphinx(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderJose(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
 
     // Data-driven configuration
     std::vector<ExhibitData> loadGalleryData();
