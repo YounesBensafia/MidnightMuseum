@@ -97,15 +97,15 @@ void Room2::renderPyramid(const glm::mat4& view, const glm::mat4& projection, GL
         GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
         GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
 
-        glm::mat4 PyramidModelMatrix = glm::mat4(1.0f);
-        // Example transform: adjust as needed for your scene
-        PyramidModelMatrix = glm::translate(PyramidModelMatrix, glm::vec3(0.0f, 0.0f, -30.0f));
-        PyramidModelMatrix = glm::rotate(PyramidModelMatrix, glm::radians(-90.0f), glm::vec3(1, 0, 0));
-        PyramidModelMatrix = glm::scale(PyramidModelMatrix, glm::vec3(4.0f, 4.0f, 4.0f));
-        glm::mat4 PyramidMVP = projection * view * PyramidModelMatrix;
+        // First pyramid (original)
+        glm::mat4 PyramidModelMatrix1 = glm::mat4(1.0f);
+        PyramidModelMatrix1 = glm::translate(PyramidModelMatrix1, glm::vec3(-2.0f, 1.0f, -30.0f));
+        PyramidModelMatrix1 = glm::rotate(PyramidModelMatrix1, glm::radians(-90.0f), glm::vec3(1, 0, 0));
+        PyramidModelMatrix1 = glm::scale(PyramidModelMatrix1, glm::vec3(2.0f, 2.0f, 2.0f));
+        glm::mat4 PyramidMVP1 = projection * view * PyramidModelMatrix1;
 
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &PyramidMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &PyramidModelMatrix[0][0]);
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &PyramidMVP1[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &PyramidModelMatrix1[0][0]);
 
         glActiveTexture(GL_TEXTURE0);
         GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
@@ -119,10 +119,31 @@ void Room2::renderPyramid(const glm::mat4& view, const glm::mat4& projection, GL
             printf("[Pyramid] WARNING: No texture found, using default color.\n");
             glBindTexture(GL_TEXTURE_2D, 0);
             glUniform1i(UseTextureID, 0);
-            // Sand/gold color
             glUniform3f(MaterialColorID, 0.9f, 0.8f, 0.5f);
         }
+        glDrawElements(GL_TRIANGLES, modelPyramid.indexCount, GL_UNSIGNED_INT, 0);
 
+        // Second pyramid (offset to the right)
+        glm::mat4 PyramidModelMatrix2 = glm::mat4(1.0f);
+        PyramidModelMatrix2 = glm::translate(PyramidModelMatrix2, glm::vec3(0.0f, 1.0f, -30.0f));
+        PyramidModelMatrix2 = glm::rotate(PyramidModelMatrix2, glm::radians(-90.0f), glm::vec3(1, 0, 0));
+        PyramidModelMatrix2 = glm::scale(PyramidModelMatrix2, glm::vec3(3.0f, 2.0f, 4.0f));
+        glm::mat4 PyramidMVP2 = projection * view * PyramidModelMatrix2;
+
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &PyramidMVP2[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &PyramidModelMatrix2[0][0]);
+
+        // Use same texture/color logic
+        if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+        if (modelPyramid.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, modelPyramid.textureID);
+            glUniform1i(UseTextureID, 1);
+            glUniform3fv(MaterialColorID, 1, &modelPyramid.baseColor[0]);
+        } else {
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glUniform1i(UseTextureID, 0);
+            glUniform3f(MaterialColorID, 0.9f, 0.8f, 0.5f);
+        }
         glDrawElements(GL_TRIANGLES, modelPyramid.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
