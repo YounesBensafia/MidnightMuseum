@@ -1,5 +1,3 @@
-// ...existing code...
-
 #include "../include/Room2.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -7,7 +5,47 @@
 #include <iostream>
 
 using namespace glm;
+// Render the Status statue (modelStatus)
+void Room2::renderStatus(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram) {
+    if (modelStatus.indexCount > 0) {
+        glBindVertexArray(modelStatus.VAO);
 
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
+
+        glm::mat4 modelStatusMatrix = glm::mat4(1.0f);
+        // Example transform: adjust as needed for your scene
+        modelStatusMatrix = glm::translate(modelStatusMatrix, glm::vec3(-6.0f, 0.0f, -37.0f));
+        modelStatusMatrix = glm::rotate(modelStatusMatrix, glm::radians(0.0f), glm::vec3(0, 1, 0));
+        modelStatusMatrix = glm::rotate(modelStatusMatrix, glm::radians(0.0f), glm::vec3(0, 0, 1));
+        modelStatusMatrix = glm::rotate(modelStatusMatrix, glm::radians(0.0f), glm::vec3(1, 0, 0));
+        modelStatusMatrix = glm::scale(modelStatusMatrix, glm::vec3(6.0f, 6.0f, 6.0f));
+        glm::mat4 StatusMVP = projection * view * modelStatusMatrix;
+
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &StatusMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &modelStatusMatrix[0][0]);
+
+        glActiveTexture(GL_TEXTURE0);
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        if (modelStatus.textureID > 0) {
+            printf("[Status] Binding texture ID: %u\n", modelStatus.textureID);
+            glBindTexture(GL_TEXTURE_2D, modelStatus.textureID);
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1);
+            glUniform3fv(MaterialColorID, 1, &modelStatus.baseColor[0]);
+        } else {
+            printf("[Status] WARNING: No texture found, using default color.\n");
+            glBindTexture(GL_TEXTURE_2D, 0);
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 0);
+            glUniform3f(MaterialColorID, 0.7f, 0.6f, 0.5f); // Default color
+        }
+
+        glDrawElements(GL_TRIANGLES, modelStatus.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
 // Render the Min Egyptian statue (MinEgy)
 void Room2::renderMinEgy(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram) {
     if (modelMinEgy.indexCount > 0) {
@@ -47,6 +85,41 @@ void Room2::renderMinEgy(const glm::mat4& view, const glm::mat4& projection, GLu
         }
 
         glDrawElements(GL_TRIANGLES, modelMinEgy.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+// Render the Pyramid (modelPyramid)
+void Room2::renderPyramid(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram) {
+    if (modelPyramid.indexCount > 0) {
+        glBindVertexArray(modelPyramid.VAO);
+
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
+
+        glm::mat4 PyramidModelMatrix = glm::mat4(1.0f);
+        // Example transform: adjust as needed for your scene
+        PyramidModelMatrix = glm::translate(PyramidModelMatrix, glm::vec3(0.0f, 0.0f, -30.0f));
+        PyramidModelMatrix = glm::rotate(PyramidModelMatrix, glm::radians(-90.0f), glm::vec3(1, 0, 0));
+        PyramidModelMatrix = glm::scale(PyramidModelMatrix, glm::vec3(4.0f, 4.0f, 4.0f));
+        glm::mat4 PyramidMVP = projection * view * PyramidModelMatrix;
+
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &PyramidMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &PyramidModelMatrix[0][0]);
+
+        glActiveTexture(GL_TEXTURE0);
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        if (modelPyramid.textureID > 0) {
+            glBindTexture(GL_TEXTURE_2D, modelPyramid.textureID);
+            glUniform1i(UseTextureID, 1);
+        } else {
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glUniform1i(UseTextureID, 0);
+        }
+        // If you want to set a default color, uncomment the next line:
+        // glUniform3fv(MaterialColorID, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 1.0f)));
+
+        glDrawElements(GL_TRIANGLES, modelPyramid.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
 // Ensure all required headers are included for OpenGL and GLM symbols
@@ -124,7 +197,8 @@ void Room2::init() {
         // Load the Amenhotep / Seki statue
         sekiModel = rm.loadFBXModel("model/seated_statue_of_amenhotep_iii.glb");
                 torsoModel = rm.loadFBXModel("model/torso_de_tutmosis_iii.glb");
-                modelMinEgy = rm.loadFBXModel("model/egyptian_miniature.glb");
+                modelStatus = rm.loadFBXModel("model/egyptian_miniature.glb");
+                modelPyramid = rm.loadFBXModel("model/pyramid_figure_decoration.glb");
                 
 
                 // Debug: report loaded texture IDs (carpet is a Model without textureID)
@@ -152,8 +226,10 @@ void Room2::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderTuta(view, projection, shaderProgram);
     renderMonster(view, projection, shaderProgram);
     renderTorso(view, projection, shaderProgram);
+    renderStatus(view, projection, shaderProgram);
     renderSeki(view, projection, shaderProgram);
     renderExhibits(view, projection, shaderProgram);
+    renderPyramid(view, projection, shaderProgram);
 }
 
 void Room2::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLuint shaderProgram) {
@@ -508,6 +584,22 @@ bool Room2::checkWallCollision(const vec3& newPos) {
             if (newPos.x < -3.0f || newPos.x > 3.0f) {
                 return true;
             }
+        }
+        // === PYRAMID COLLISION ===
+        // Pyramid is at (0, 0, -30), scaled by 4.0, so its base is roughly 4x4 units (assuming model base is 1x1)
+        // Adjust these bounds as needed for your model's real size
+        float pyramidX = 0.0f;
+        float pyramidY = 0.0f;
+        float pyramidZ = -30.0f;
+        float pyramidBase = 4.0f * 1.0f; // 4.0 is the scale
+        float pyramidHalf = pyramidBase * 0.5f + wallMargin;
+        float pyramidHeight = 4.0f + wallMargin; // 4.0 is the scale
+
+        if (newPos.x > (pyramidX - pyramidHalf) && newPos.x < (pyramidX + pyramidHalf) &&
+            newPos.z > (pyramidZ - pyramidHalf) && newPos.z < (pyramidZ + pyramidHalf) &&
+            newPos.y > pyramidY && newPos.y < (pyramidY + pyramidHeight)) {
+            // Inside the pyramid's bounding box
+            return true;
         }
     }
     

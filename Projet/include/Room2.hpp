@@ -49,6 +49,8 @@ private:
     FBXModel torsoModel;
     FBXModel peopleModel;
     FBXModel modelMinEgy;
+    FBXModel modelStatus;
+    FBXModel modelPyramid;
     
     std::vector<Exhibit> exhibits;
     
@@ -60,8 +62,9 @@ private:
     void renderMonster(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderSeki(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderTorso(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
-    void renderPeople(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderMinEgy(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderStatus(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderPyramid(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderExhibits(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     
     // Data-driven configuration
