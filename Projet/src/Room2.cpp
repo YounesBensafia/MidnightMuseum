@@ -234,7 +234,7 @@ void Room2::init() {
     
     // Load models specific to Room 2
     carpetModel = rm.loadModel("model/carpet.obj", true);
-    buddhaModel = rm.loadFBXModel("model/stela_of_ima_from.glb");
+    buddhaModel = rm.loadFBXModel("model/buddha_triad.glb");
     TutaModel = rm.loadFBXModel("model/the_bust_of_pharaoh_tutankhamun.glb");
         monsterModel = rm.loadFBXModel("model/monster__sekireinel__totem_kings_raid.glb");
         // Load the Amenhotep / Seki statue
@@ -452,12 +452,12 @@ void Room2::renderBuddha(const mat4& view, const mat4& projection, GLuint shader
         GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
         
         mat4 BuddhaModel = mat4(1.0f);
-        BuddhaModel = translate(BuddhaModel, vec3(-11.5f, 6.0f, -30.5f));
+        BuddhaModel = translate(BuddhaModel, vec3(-10.5f, 6.0f, -30.5f));
         // No rotation: keep Buddha upright (X=0, Y=0, Z=0)
         BuddhaModel = rotate(BuddhaModel, radians(0.0f), vec3(0, 1, 0));
-        BuddhaModel = rotate(BuddhaModel, radians(-180.0f), vec3(0, 0, 1));
-        BuddhaModel = rotate(BuddhaModel, radians(0.0f), vec3(1, 0, 0));
-        BuddhaModel = scale(BuddhaModel, vec3(6.0f, 5.0f, 5.0f));
+        BuddhaModel = rotate(BuddhaModel, radians(90.0f), vec3(0, 0, 1));
+        BuddhaModel = rotate(BuddhaModel, radians(60.0f), vec3(1, 0, 0));
+        BuddhaModel = scale(BuddhaModel, vec3(3.0f, 3.0f, 3.0f));
         mat4 BuddhaMVP = projection * view * BuddhaModel;
         
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &BuddhaMVP[0][0]);
