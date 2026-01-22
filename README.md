@@ -83,5 +83,3 @@ make
 **Institution:** University of Science and Technology Houari Boumediene (USTHB)
 **Faculty:** Electronics and Computer Science (FEI)
 **Academic Year:** 2025/2026
-
-Would you like me to help you write the image captions or format the file pathing for your local image folder?
