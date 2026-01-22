@@ -280,10 +280,11 @@ void Room2::renderMonster(const mat4& view, const mat4& projection, GLuint shade
         GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
         
         mat4 MonsterModelMatrix = mat4(1.0f);
-        MonsterModelMatrix = translate(MonsterModelMatrix, vec3(-6.5f, 6.0f, -30.5f));  // Next to Buddha
-        MonsterModelMatrix = rotate(MonsterModelMatrix, radians(100.0f), vec3(0, 0, 1));
-        MonsterModelMatrix = rotate(MonsterModelMatrix, radians(57.0f), vec3(1, 0, 0));
-        MonsterModelMatrix = scale(MonsterModelMatrix, vec3(0.01f, 0.01f, 0.01f));  // Microscopic
+        MonsterModelMatrix = translate(MonsterModelMatrix, vec3(-6.5f, 0.0f, -30.5f));  // In the floor
+        MonsterModelMatrix = rotate(MonsterModelMatrix, radians(0.0f), vec3(0, 1, 0));  // Y - Turning
+        MonsterModelMatrix = rotate(MonsterModelMatrix, radians(0.0f), vec3(0, 0, 1)); // Z - Spinning
+        MonsterModelMatrix = rotate(MonsterModelMatrix, radians(-90.0f), vec3(1, 0, 0));  // X - Standing upright
+        MonsterModelMatrix = scale(MonsterModelMatrix, vec3(0.1f, 0.1f, 0.1f));  // Larger
         mat4 MonsterMVP = projection * view * MonsterModelMatrix;
         
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MonsterMVP[0][0]);
