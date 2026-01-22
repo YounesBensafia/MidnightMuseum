@@ -126,7 +126,7 @@ void MuseumScene::render() {
     allLights.insert(allLights.end(), hallwaySpotlights.begin(), hallwaySpotlights.end());
     
     // Send all light positions to shader (max 6 from array size)
-    int numLightsToSend = std::min((int)allLights.size(), 6);
+    int numLightsToSend = std::min((int)allLights.size(), 9);
     for (int i = 0; i < numLightsToSend; i++) {
         std::string lightPosName = "lightPos[" + std::to_string(i) + "]";
         glUniform3fv(glGetUniformLocation(shaderProgram, lightPosName.c_str()), 1, &allLights[i][0]);

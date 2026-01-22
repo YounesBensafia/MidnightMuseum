@@ -40,7 +40,10 @@ void Room1::init() {
     skirtingBoardModel = rm.loadFBXModel("model/skirtingboard.glb");
     skullModel = rm.loadFBXModel("model/skull.glb");
     spotlightModel = rm.loadFBXModel("model/spotlight.glb");
-    
+    lampModel = rm.loadFBXModel("model/lamp.glb");
+    statueModel = rm.loadFBXModel("model/statue.glb");
+    headModel = rm.loadFBXModel("model/head.glb");
+    wallLampModel = rm.loadFBXModel("model/wall_lamp.glb");
     initPromptUI();
 }
 
@@ -206,7 +209,6 @@ void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderFossils(view, projection, shaderProgram);
     renderSkull(view, projection, shaderProgram);
     renderRopeBarriers(view, projection, shaderProgram);
-    renderCoffin(view, projection, shaderProgram);
     renderMourningFemale(view, projection, shaderProgram);
     renderTigerPainting(view, projection, shaderProgram);
     renderAdditionalPaintings(view, projection, shaderProgram);
@@ -215,8 +217,10 @@ void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     }
     renderChandelier(view, projection, shaderProgram);
     renderTableSpotlights(view, projection, shaderProgram);
-    renderEffigy(view, projection, shaderProgram);
+    renderNewArtifacts(view, projection, shaderProgram);
     renderEKeyPrompt(projection);
+    renderLamps(view, projection, shaderProgram);
+    renderWallLamps(view, projection, shaderProgram);
 }
 
 void Room1::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLuint shaderProgram) {
@@ -375,7 +379,7 @@ void Room1::renderShowcases(const mat4& view, const mat4& projection, GLuint sha
         for (int i = 0; i < 6; i++) {
             // Skip left middle showcase (index 1) - mourning female is there without table
             // Skip right front, middle and back showcases (indices 3, 4, 5) - clear space for painting
-            if (i == 1 || i == 3 || i == 4 || i == 5) continue;
+            if (i == 0 || i == 1 || i == 3 || i == 4 || i == 5) continue;
             
             mat4 Model = mat4(1.0f);
             Model = translate(Model, showcasePositions[i]);
@@ -397,6 +401,45 @@ void Room1::renderShowcases(const mat4& view, const mat4& projection, GLuint sha
             
             glDrawElements(GL_TRIANGLES, showcaseModel.indexCount, GL_UNSIGNED_INT, 0);
         }
+    }
+}
+
+void Room1::renderNewArtifacts(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+    GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+    GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+
+    // --- 1. THE STATUE (Replaces front-left box and effigy) ---
+    if (statueModel.vertexCount > 0) {
+        glBindVertexArray(statueModel.VAO);
+        mat4 Model = mat4(1.0f);
+        Model = translate(Model, vec3(-17.0f, 0.0f, -7.0f)); // On the floor
+        Model = scale(Model, vec3(2.0f, 2.0f, 2.0f)); // Adjust based on model size
+        mat4 MVP = projection * view * Model;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Model[0][0]);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, statueModel.textureID);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, statueModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+
+    // --- 2. THE HEAD (Inside the middle-left showcase) ---
+    if (headModel.vertexCount > 0) {
+        glBindVertexArray(headModel.VAO);
+        mat4 Model = mat4(1.0f);
+        // Positioned inside the box at Z=0.0, Y=5.5 (on the pedestal)
+        Model = translate(Model, vec3(-17.0f, 0.2f, 27.0f)); 
+        Model = scale(Model, vec3(0.8f, 0.8f, 0.8f));
+        mat4 MVP = projection * view * Model;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Model[0][0]);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, headModel.textureID);
+        glUniform1i(UseTextureID, 1);
+        glDrawElements(GL_TRIANGLES, headModel.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
 
@@ -485,40 +528,7 @@ void Room1::renderRopeBarriers(const mat4& view, const mat4& projection, GLuint 
     }
 }
 
-void Room1::renderCoffin(const mat4& view, const mat4& projection, GLuint shaderProgram) {
-    if (coffinModel.vertexCount > 0) {
-        glBindVertexArray(coffinModel.VAO);
-        
-        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
-        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
-        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
-        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
-        
-        // Place coffin on top of left back table (last showcase)
-        mat4 CoffinModel = mat4(1.0f);
-        CoffinModel = translate(CoffinModel, vec3(-17.0f, 2.5f + coffinFloatOffset, 26.5f));  // Apply floating animation
-    
-        CoffinModel = rotate(CoffinModel, radians(270.0f), vec3(0, 0, 1));  // Flip vertically
-        CoffinModel = rotate(CoffinModel, radians(-10.0f), vec3(0, 1, 0));
-        CoffinModel = rotate(CoffinModel, radians(-50.0f), vec3(1, 0, 0));
-        CoffinModel = rotate(CoffinModel, radians(-20.0f), vec3(0, 1, 0));
-        CoffinModel = rotate(CoffinModel, radians(-20.0f), vec3(0, 0, 1));
-        CoffinModel = rotate(CoffinModel, radians(20.0f), vec3(0, 1, 0));
 
-        CoffinModel = scale(CoffinModel, vec3(0.5f, 0.5f, 0.5f));  // Much bigger
-        mat4 CoffinMVP = projection * view * CoffinModel;
-        
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &CoffinMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &CoffinModel[0][0]);
-        
-        if (coffinModel.textureID > 0) {
-            glBindTexture(GL_TEXTURE_2D, coffinModel.textureID);
-        }
-        glUniform1i(TextureID, 0);
-        glUniform1i(UseTextureID, 1);
-        glDrawElements(GL_TRIANGLES, coffinModel.indexCount, GL_UNSIGNED_INT, 0);
-    }
-}
 
 void Room1::renderMourningFemale(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     if (mourningFemaleModel.vertexCount > 0) {
@@ -550,35 +560,37 @@ void Room1::renderMourningFemale(const mat4& view, const mat4& projection, GLuin
     }
 }
 
-void Room1::renderEffigy(const mat4& view, const mat4& projection, GLuint shaderProgram) {
-    if (effigyModel.vertexCount > 0) {
-        glBindVertexArray(effigyModel.VAO);
+
+void Room1::renderLamps(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (lampModel.vertexCount > 0) {
+        glBindVertexArray(lampModel.VAO);
         
         GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
         GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
-        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
-        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
         
-        mat4 EffigyModel = mat4(1.0f);
-        // Apply floating animation offset
-        EffigyModel = translate(EffigyModel, vec3(-17.5f, 2.5f + effigyFloatOffset, -7.0f));
-        EffigyModel = rotate(EffigyModel, radians(120.0f), vec3(0, 1, 0));
-        EffigyModel = rotate(EffigyModel, radians(-90.0f), vec3(1, 0, 0));
-        EffigyModel = rotate(EffigyModel, radians(-90.0f), vec3(0, 1, 0));
-        EffigyModel = scale(EffigyModel, vec3(1.2f, 1.2f, 1.2f));
-        mat4 EffigyMVP = projection * view * EffigyModel;
-        
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &EffigyMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &EffigyModel[0][0]);
-        glActiveTexture(GL_TEXTURE0);
-        if (effigyModel.textureID > 0) {
-            glBindTexture(GL_TEXTURE_2D, effigyModel.textureID);
-        } else {
-            glBindTexture(GL_TEXTURE_2D, rm.getTexture("bones"));
+        // These coordinates align with the Effigy, Statue, and Coffin on the left
+        float leftX = -17.0f; 
+        float lampY = 13.5f; // Just below the Y=24.0 ceiling
+        float zPositions[] = { -7.0f, 27.0f, 10.0f };
+
+        for (int i = 0; i < 3; i++) {
+            mat4 Model = mat4(1.0f);
+            Model = translate(Model, vec3(leftX, lampY, zPositions[i]));
+            
+            // Adjust scale and rotation based on your specific lamp.glb
+            Model = scale(Model, vec3(4.0f, 4.0f, 4.0f)); 
+            
+            mat4 MVP = projection * view * Model;
+            
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+            glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Model[0][0]);
+            
+            // Texture binding
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, lampModel.textureID);
+            
+            glDrawElements(GL_TRIANGLES, lampModel.indexCount, GL_UNSIGNED_INT, 0);
         }
-        glUniform1i(TextureID, 0);
-        glUniform1i(UseTextureID, 1);
-        glDrawElements(GL_TRIANGLES, effigyModel.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
 
@@ -646,7 +658,11 @@ bool Room1::checkTableCollision(const vec3& newPos) {
         vec3(17.0f, 1.0f, 10.0f),    // Right middle
         vec3(17.0f, 1.0f, 27.0f)     // Right back
     };
-    
+
+    float statueRadius = 2.5f; 
+    float distToStatue = length(vec2(newPos.x - (-17.0f), newPos.z - (-7.0f)));
+    if (distToStatue < statueRadius) return true;
+
     float tableRadius = 2.0f;
     for (int i = 0; i < 6; i++) {
         // Skip removed tables: left middle (1), right front/middle/back (3, 4, 5)
@@ -798,7 +814,7 @@ void Room1::renderAdditionalPaintings(const mat4& view, const mat4& projection, 
         glBindVertexArray(painting2Model.VAO);
         
         mat4 Painting2Model = mat4(1.0f);
-        Painting2Model = translate(Painting2Model, vec3(23.0f, 6.0f, -5.0f));  // Left of tiger, lower on wall
+        Painting2Model = translate(Painting2Model, vec3(23.5f, 6.0f, -5.0f));  // Left of tiger, lower on wall
         Painting2Model = rotate(Painting2Model, radians(-180.0f), vec3(0, 1, 0));  // Face west (into room)
         Painting2Model = rotate(Painting2Model, radians(-90.0f), vec3(1, 0, 0));  // Face west (into room)
         Painting2Model = scale(Painting2Model, vec3(0.015f, 0.015f, 0.015f));  // Much smaller
@@ -820,7 +836,7 @@ void Room1::renderAdditionalPaintings(const mat4& view, const mat4& projection, 
         glBindVertexArray(painting3Model.VAO);
         
         mat4 Painting3Model = mat4(1.0f);
-        Painting3Model = translate(Painting3Model, vec3(35.0f, 7.5f, 28.0f));  // Right of tiger on east wall
+        Painting3Model = translate(Painting3Model, vec3(36.0f, 7.5f, 28.0f));  // Right of tiger on east wall
         Painting3Model = rotate(Painting3Model, radians(-25.0f), vec3(0, 0, 1));  // Face west (into room)
         Painting3Model = rotate(Painting3Model, radians(110.0f), vec3(0, 0, 1));  // Face west (into room)
         Painting3Model = rotate(Painting3Model, radians(125.0f), vec3(0, 1, 0));  // Face west (into room)
@@ -1096,6 +1112,50 @@ void Room1::renderSkull(const mat4& view, const mat4& projection, GLuint shaderP
     }
 }
 
+void Room1::renderWallLamps(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (wallLampModel.vertexCount > 0) {
+        glBindVertexArray(wallLampModel.VAO);
+
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+
+        // Painting positions are usually on the walls
+        // Let's place 3 lamps on the West Wall (x = -23.5)
+        vec3 lampPositions[] = {
+            vec3(24.0f, 17.0f, -5.0f),  // Above Statue area painting
+            vec3(24.0f, 17.0f, 25.0f),  // Above Mourning Female area painting
+            vec3(24.0f, 19.0f, 10.0f)   // Above Head showcase area painting
+        };
+
+        for (int i = 0; i < 3; i++) {
+            mat4 model = mat4(1.0f);
+            model = translate(model, lampPositions[i]);
+            // Rotate to face away from the West wall (pointing East/Right)
+            model = rotate(model, radians(-90.0f), vec3(0.0f, 1.0f, 0.0f)); 
+
+            model = scale(model, vec3(1.5f, 1.5f, 1.5f)); 
+
+            mat4 mvp = projection * view * model;
+
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+            glUniformMatrix4fv(ModelID, 1, GL_FALSE, &model[0][0]);
+
+            if (wallLampModel.textureID > 0) {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, wallLampModel.textureID);
+                glUniform1i(TextureID, 0);
+                glUniform1i(UseTextureID, 1);
+            } else {
+                glUniform1i(UseTextureID, 0);
+            }
+
+            glDrawElements(GL_TRIANGLES, wallLampModel.indexCount, GL_UNSIGNED_INT, 0);
+        }
+    }
+}
+
 void Room1::renderTableSpotlights(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     if (spotlightModel.vertexCount > 0) {
         glBindVertexArray(spotlightModel.VAO);
@@ -1141,21 +1201,29 @@ void Room1::renderTableSpotlights(const mat4& view, const mat4& projection, GLui
 std::vector<vec3> Room1::getActiveSpotlightPositions() const {
     std::vector<vec3> activePositions;
     
-    // Same positions as in renderTableSpotlights - these become light sources
-    vec3 spotlightPositions[] = {
-        vec3(-17.0f, 18.0f, -7.0f),   // Left front (slightly lower for better lighting)
-        vec3(-17.0f, 18.0f, 10.0f),   // Left middle
-        vec3(-17.0f, 18.0f, 27.0f),   // Left back
-        vec3(17.0f, 18.0f, -7.0f),    // Right front
-        vec3(17.0f, 18.0f, 10.0f),    // Right middle
-        vec3(17.0f, 18.0f, 27.0f)     // Right back
-    };
-    
-    for (int i = 0; i < 6; i++) {
+    // --- 1. CEILING LAMPS (Indices 0, 1, 2) ---
+    float leftX = -17.0f;
+    float lampLightY = 7.0f; 
+    // Match the order of your tableSpotlights array
+    float zPos[] = { -7.0f, 10.0f, 27.0f }; 
+
+    for (int i = 0; i < 3; i++) {
         if (tableSpotlights[i]) {
-            activePositions.push_back(spotlightPositions[i]);
+            activePositions.push_back(vec3(leftX, lampLightY, zPos[i]));
+        } else {
+            // Move the light source far away so it doesn't illuminate anything
+            activePositions.push_back(vec3(0.0f, -100.0f, 0.0f)); 
         }
     }
-    
+
+    // --- 2. WALL LAMPS (Indices 3, 4, 5) ---
+    // These do not check the boolean; they are always on
+    activePositions.push_back(vec3(22.5f, 17.0f, -5.0f));
+    activePositions.push_back(vec3(22.5f, 17.0f, 25.0f));
+    activePositions.push_back(vec3(22.5f, 19.0f, 10.0f));
+
+    activePositions.push_back(vec3(0.0f, 15.0f, 10.0f));
+
     return activePositions;
 }
+

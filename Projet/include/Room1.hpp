@@ -39,6 +39,10 @@ private:
     FBXModel chandelierModel;
     FBXModel skirtingBoardModel;
     FBXModel skullModel;
+    FBXModel lampModel;
+    FBXModel statueModel;
+    FBXModel headModel;
+    FBXModel wallLampModel;
     
     // Spotlight model for tables
     FBXModel spotlightModel;
@@ -49,9 +53,8 @@ private:
     void renderFloorAndCeiling(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderShowcases(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderFossils(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
-    void renderEffigy(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderNewArtifacts(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderRopeBarriers(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
-    void renderCoffin(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderMourningFemale(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderTigerPainting(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderAdditionalPaintings(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
@@ -61,7 +64,9 @@ private:
     void renderSkull(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderEKeyPrompt(const glm::mat4& projection);
     void renderTableSpotlights(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
-    
+    void renderLamps(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderWallLamps(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+        
     bool checkFossilCollision(const glm::vec3& newPos);
     bool checkTableCollision(const glm::vec3& newPos);
     bool checkWallCollision(const glm::vec3& newPos);

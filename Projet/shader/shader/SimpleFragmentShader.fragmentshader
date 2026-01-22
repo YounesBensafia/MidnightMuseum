@@ -8,12 +8,12 @@ in vec2 vTexture;
 out vec4 color;
 
 uniform vec3 lightColor;
-uniform vec3 lightPos[6]; // Array of 6 light positions
-uniform int numLights;    // Number of active lights
+uniform vec3 lightPos[9]; 
+uniform int numLights;    
 uniform vec3 viewPos;
 uniform sampler2D ourTexture;
-uniform int useTexture; // 0 = use material color, 1 = use texture
-uniform vec3 materialColor; // Material diffuse color
+uniform int useTexture; 
+uniform vec3 materialColor; 
 
 // Spotlight (flashlight)
 uniform vec3 spotLightPos;
@@ -22,74 +22,104 @@ uniform int spotLightOn;
 
 void main()
 {
-	vec4 baseColor;
-	if (useTexture == 1) {
-		baseColor = texture(ourTexture, vTexture);
-	} else {
-		baseColor = vec4(materialColor, 1.0);
-	}
-	
-	// Ambient - very low for dark museum atmosphere
-	float ambientIntens = 0.05;
-	vec3 ambient = lightColor * ambientIntens;
-	
-	vec3 totalDiffuse = vec3(0.0);
-	vec3 totalSpecular = vec3(0.0);
-	vec3 normal = normalize(vNormal);
-	vec3 viewDir = normalize(viewPos - vPos);
-	
-	// Calculate lighting contribution from each light
-	for (int i = 0; i < numLights; i++) {
-		// Diffuse - stronger for activated spotlights
-		vec3 lightDir = normalize(lightPos[i] - vPos);
-		float distance = length(lightPos[i] - vPos);
-		float diff = max(dot(normal, lightDir), 0.0);
-		
-		// Stronger attenuation and intensity for spotlight effect
-		float attenuation = 1.0 / (1.0 + 0.02 * distance + 0.005 * distance * distance);
-		float diffusIntens = 0.8; // Much brighter when activated
-		totalDiffuse += diff * lightColor * diffusIntens * attenuation;
-		
-		// Specular
-		float specIntens = 0.2;
-		vec3 reflectDir = reflect(-lightDir, normal);
-		float spec = pow(max(dot(viewDir, reflectDir), 0.0), 50);
-		totalSpecular += specIntens * spec * lightColor;
-	}
-	
-	// Add spotlight (flashlight) contribution
-	if (spotLightOn == 1) {
-		vec3 lightDir = normalize(spotLightPos - vPos);
-		float distance = length(spotLightPos - vPos);
-		
-		// Calculate spotlight cone
-		float theta = dot(lightDir, normalize(-spotLightDir));
-		float cutOff = cos(radians(15.0)); // Inner cone
-		float outerCutOff = cos(radians(25.0)); // Outer cone
-		
-		if (theta > outerCutOff) {
-			// Smooth edge falloff
-			float epsilon = cutOff - outerCutOff;
-			float intensity = clamp((theta - outerCutOff) / epsilon, 0.0, 1.0);
-			
-			// Attenuation
-			float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * distance * distance);
-			
-			// Diffuse
-			float diff = max(dot(normal, lightDir), 0.0);
-			vec3 spotDiffuse = diff * lightColor * 0.8 * intensity * attenuation;
-			
-			// Specular
-			vec3 reflectDir = reflect(-lightDir, normal);
-			float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-			vec3 spotSpecular = 0.5 * spec * lightColor * intensity * attenuation;
-			
-			totalDiffuse += spotDiffuse;
-			totalSpecular += spotSpecular;
-		}
-	}
-	
-	vec3 lighting = ambient + totalDiffuse + totalSpecular;
-	vec3 finalColor = lighting * baseColor.rgb;
-	color = vec4(finalColor, 1.0);
+    vec4 baseColor;
+    if (useTexture == 1) {
+        baseColor = texture(ourTexture, vTexture);
+    } else {
+        baseColor = vec4(materialColor, 1.0);
+    }
+    
+    float ambientIntens = 0.05;
+    vec3 ambient = lightColor * ambientIntens;
+    
+    vec3 totalDiffuse = vec3(0.0);
+    vec3 totalSpecular = vec3(0.0);
+    vec3 normal = normalize(vNormal);
+    vec3 viewDir = normalize(viewPos - vPos);
+    
+    for (int i = 0; i < numLights; i++) {
+    vec3 lightDir = normalize(lightPos[i] - vPos);
+    float distance = length(lightPos[i] - vPos);
+    
+    // --- SETTINGS ---
+    float strengthBoost = 1.0;
+    float cutOffDeg = 25.0;
+    float outerCutOffDeg = 40.0;
+    vec3 currentLightColor = lightColor;
+    bool isPointLight = false; // New flag for 360-degree lights
+
+    // Wall Lamps Logic
+    if (i >= 3 && i <= 5) { 
+        strengthBoost = 1.0;
+        cutOffDeg = 45.0;       
+        outerCutOffDeg = 80.0;  
+        currentLightColor = lightColor * vec3(1.0, 0.85, 0.6); 
+    }
+    
+    // --- CHANDELIER LOGIC (Index 6) ---
+    if (i == 6) {
+        strengthBoost = 0.4;    // Keep it weak so it doesn't hide other lights
+        isPointLight = true;    // This will bypass the spotlight cone check
+        currentLightColor = lightColor * vec3(1.0, 0.95, 0.8); // Pale warm white
+    }
+
+    // --- SPOTLIGHT INTENSITY ---
+    float spotIntensity;
+    if (isPointLight) {
+        spotIntensity = 1.0; // 360-degree coverage
+    } else {
+        vec3 spotDir = vec3(0.0, -1.0, 0.0); 
+        float theta = dot(-lightDir, spotDir); 
+        float cutOff = cos(radians(cutOffDeg));      
+        float outerCutOff = cos(radians(outerCutOffDeg)); 
+        float epsilon = cutOff - outerCutOff;
+        spotIntensity = clamp((theta - outerCutOff) / epsilon, 0.0, 1.0);
+    }
+    
+    // --- LAMP GLOW ---
+    float glowPower = 1.0 / (1.0 + 2.0 * distance * distance); 
+    vec3 lampGlow = currentLightColor * 0.5 * glowPower * strengthBoost;
+
+    // --- FINAL CALCULATION ---
+    // Use a softer attenuation for the chandelier so it fills the room
+    float attenuation;
+    if (i == 6) {
+        attenuation = 1.0 / (1.0 + 0.01 * distance + 0.002 * distance * distance);
+    } else {
+        attenuation = 1.0 / (1.0 + 0.04 * distance + 0.01 * distance * distance);
+    }
+    
+    float diff = max(dot(normal, lightDir), 0.0);
+    totalDiffuse += (diff * currentLightColor * 2.0 * strengthBoost * attenuation * spotIntensity) + lampGlow;
+    
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    totalSpecular += (0.5 * strengthBoost * spec * currentLightColor * spotIntensity) + (lampGlow * 0.2);
+}
+
+    // Flashlight contribution (White light for contrast)
+    if (spotLightOn == 1) {
+        vec3 lightDir = normalize(spotLightPos - vPos);
+        float distance = length(spotLightPos - vPos);
+        float theta = dot(lightDir, normalize(-spotLightDir));
+        float cutOff = cos(radians(10.0)); 
+        float outerCutOff = cos(radians(18.0)); 
+        
+        if (theta > outerCutOff) {
+            float epsilon = cutOff - outerCutOff;
+            float intensity = clamp((theta - outerCutOff) / epsilon, 0.0, 1.0);
+            float attenuation = 1.0 / (1.0 + 0.045 * distance + 0.0075 * distance * distance);
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 spotDiffuse = diff * lightColor * 5.0 * intensity * attenuation;
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+            vec3 spotSpecular = 0.5 * spec * lightColor * intensity * attenuation;
+            totalDiffuse += spotDiffuse;
+            totalSpecular += spotSpecular;
+        }
+    }
+    
+    vec3 lighting = ambient + totalDiffuse + totalSpecular;
+    vec3 finalColor = lighting * baseColor.rgb;
+    color = vec4(finalColor, 1.0);
 }
