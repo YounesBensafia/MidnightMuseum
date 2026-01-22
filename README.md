@@ -31,11 +31,13 @@ An immersive 3D museum experience developed using **OpenGL 3.3** for the "Synth√
 ### Main Exhibition Hall
 
 The main hall features high-density 3D models including dinosaur fossils and statues, demonstrating the engine's ability to handle complex geometries.
+
 <img width="604" height="338" alt="image" src="https://github.com/user-attachments/assets/cb71f2b9-ec0f-412c-95ad-fcbc22fb0b7c" />
 
 ### Lighting and Atmosphere
 
 Demonstration of the dynamic lighting system, showcasing the player's flashlight and the environmental contrast created by the Phong reflection model.
+
 <img width="567" height="315" alt="image" src="https://github.com/user-attachments/assets/125af5d7-706d-46fc-9157-fbb83c7eb0cc" />
 
 ### Inspection Mode
