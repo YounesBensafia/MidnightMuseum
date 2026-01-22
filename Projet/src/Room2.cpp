@@ -1,3 +1,60 @@
+// Ensure all required headers are included for OpenGL and GLM symbols
+#include "../include/Room2.hpp"
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glad/glad.h>
+#include <iostream>
+
+using namespace glm;
+
+void Room2::renderTorso(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (torsoModel.indexCount > 0) {
+        printf("[Torso] VAO=%u, indexCount=%zu, textureID=%u\n", torsoModel.VAO, torsoModel.indexCount, torsoModel.textureID);
+        // Print first 10 UVs for debug (if available)
+        extern std::vector<FBXVertex> g_lastFBXVertices; // Must be set in loader for this model
+        if (!g_lastFBXVertices.empty()) {
+            printf("[Torso] First 10 UVs:\n");
+            for (size_t i = 0; i < g_lastFBXVertices.size() && i < 10; ++i) {
+                printf("  UV[%zu]: (%f, %f)\n", i, g_lastFBXVertices[i].texCoords.x, g_lastFBXVertices[i].texCoords.y);
+            }
+        } else {
+            printf("[Torso] UV debug: No vertex data available.\n");
+        }
+        glBindVertexArray(torsoModel.VAO);
+
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
+
+        mat4 TorsoModelMatrix = mat4(1.0f);
+        TorsoModelMatrix = translate(TorsoModelMatrix, vec3(0.0f, 0.0f, -32.0f));
+        TorsoModelMatrix = rotate(TorsoModelMatrix, radians(0.0f), vec3(0, 1, 0));
+        TorsoModelMatrix = rotate(TorsoModelMatrix, radians(0.0f), vec3(0, 0, 1));
+        TorsoModelMatrix = rotate(TorsoModelMatrix, radians(-90.0f), vec3(1, 0, 0));
+        TorsoModelMatrix = scale(TorsoModelMatrix, vec3(0.5f, 0.4f, 0.4f));
+        mat4 TorsoMVP = projection * view * TorsoModelMatrix;
+
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &TorsoMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &TorsoModelMatrix[0][0]);
+
+        if (torsoModel.textureID > 0) {
+            printf("[Torso] Binding texture ID: %u\n", torsoModel.textureID);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, torsoModel.textureID);
+            GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1);
+            glUniform3fv(MaterialColorID, 1, &torsoModel.baseColor[0]);
+        } else {
+            printf("[Torso] WARNING: No texture found, using default color.\n");
+            glUniform1i(UseTextureID, 0);
+            glUniform3f(MaterialColorID, 0.7f, 0.6f, 0.5f); // Default color
+        }
+
+        glDrawElements(GL_TRIANGLES, torsoModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
 #include "../include/Room2.hpp"
 #include "../include/Application.hpp"
 #include <glm/gtc/matrix_transform.hpp>
@@ -18,9 +75,16 @@ void Room2::init() {
     
     // Load models specific to Room 2
     carpetModel = rm.loadModel("model/carpet.obj", true);
-    buddhaModel = rm.loadFBXModel("model/buddha_triad.glb");
+    buddhaModel = rm.loadFBXModel("model/stela_of_ima_from.glb");
     TutaModel = rm.loadFBXModel("model/the_bust_of_pharaoh_tutankhamun.glb");
-    monsterModel = rm.loadFBXModel("model/monster__sekireinel__totem_kings_raid.glb");
+        monsterModel = rm.loadFBXModel("model/monster__sekireinel__totem_kings_raid.glb");
+        // Load the Amenhotep / Seki statue
+        sekiModel = rm.loadFBXModel("model/seated_statue_of_amenhotep_iii.glb");
+                torsoModel = rm.loadFBXModel("model/torso_de_tutmosis_iii.glb");
+
+                // Debug: report loaded texture IDs (carpet is a Model without textureID)
+                printf("Loaded models textures: buddha=%u, tuta=%u, monster=%u, seki=%u\n",
+                    buddhaModel.textureID, TutaModel.textureID, monsterModel.textureID, sekiModel.textureID);
     
     // Initialize Pharaonic exhibits from data
     initializeExhibits();
@@ -32,11 +96,18 @@ void Room2::update(float dt, GLFWwindow* window) {
 }
 
 void Room2::render(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    // Ensure the fragment shader sampler uses texture unit 0
+    GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+    if (TextureID != (GLuint)-1) {
+        glUniform1i(TextureID, 0);
+    }
     renderFloorAndCeiling(view, projection, shaderProgram);
     renderWalls(view, projection, shaderProgram);
     renderBuddha(view, projection, shaderProgram);
     renderTuta(view, projection, shaderProgram);
     renderMonster(view, projection, shaderProgram);
+    renderTorso(view, projection, shaderProgram);
+    renderSeki(view, projection, shaderProgram);
     renderExhibits(view, projection, shaderProgram);
 }
 
@@ -44,6 +115,7 @@ void Room2::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLui
     GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
     GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
     GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+    GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
     
     if (carpetModel.vertexCount > 0) {
         glBindVertexArray(carpetModel.VAO);
@@ -57,7 +129,10 @@ void Room2::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLui
         
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Ceiling2MVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &Ceiling2[0][0]);
+        // Ensure texture unit 0 is active and sampler is bound to it
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, rm.getTexture("wall"));
+        if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
         glUniform1i(UseTextureID, 1);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
     }
@@ -211,9 +286,11 @@ void Room2::renderBuddha(const mat4& view, const mat4& projection, GLuint shader
         
         mat4 BuddhaModel = mat4(1.0f);
         BuddhaModel = translate(BuddhaModel, vec3(-11.5f, 6.0f, -30.5f));
-        BuddhaModel = rotate(BuddhaModel, radians(100.0f), vec3(0, 0, 1));
-        BuddhaModel = rotate(BuddhaModel, radians(57.0f), vec3(1, 0, 0));
-        BuddhaModel = scale(BuddhaModel, vec3(3.0f, 3.0f, 3.0f));
+        // No rotation: keep Buddha upright (X=0, Y=0, Z=0)
+        BuddhaModel = rotate(BuddhaModel, radians(0.0f), vec3(0, 1, 0));
+        BuddhaModel = rotate(BuddhaModel, radians(-180.0f), vec3(0, 0, 1));
+        BuddhaModel = rotate(BuddhaModel, radians(0.0f), vec3(1, 0, 0));
+        BuddhaModel = scale(BuddhaModel, vec3(6.0f, 5.0f, 5.0f));
         mat4 BuddhaMVP = projection * view * BuddhaModel;
         
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &BuddhaMVP[0][0]);
@@ -222,7 +299,9 @@ void Room2::renderBuddha(const mat4& view, const mat4& projection, GLuint shader
         if (buddhaModel.textureID > 0) {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, buddhaModel.textureID);
-            glUniform1i(UseTextureID, 0);
+            GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1);
             glUniform3fv(MaterialColorID, 1, &buddhaModel.baseColor[0]);
         } else {
             glUniform1i(UseTextureID, 0);
@@ -257,6 +336,8 @@ void Room2::renderTuta(const mat4& view, const mat4& projection, GLuint shaderPr
         if (TutaModel.textureID > 0) {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, TutaModel.textureID);
+            GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
             glUniform1i(UseTextureID, 1);
             glUniform3fv(MaterialColorID, 1, &TutaModel.baseColor[0]);
         } else {
@@ -284,7 +365,7 @@ void Room2::renderMonster(const mat4& view, const mat4& projection, GLuint shade
         MonsterModelMatrix = rotate(MonsterModelMatrix, radians(0.0f), vec3(0, 1, 0));  // Y - Turning
         MonsterModelMatrix = rotate(MonsterModelMatrix, radians(0.0f), vec3(0, 0, 1)); // Z - Spinning
         MonsterModelMatrix = rotate(MonsterModelMatrix, radians(-90.0f), vec3(1, 0, 0));  // X - Standing upright
-        MonsterModelMatrix = scale(MonsterModelMatrix, vec3(0.03f, 0.03f, 0.03f));  // Slightly smaller
+        MonsterModelMatrix = scale(MonsterModelMatrix, vec3(0.01f, 0.01f, 0.01f));  // Slightly smaller
         mat4 MonsterMVP = projection * view * MonsterModelMatrix;
         
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MonsterMVP[0][0]);
@@ -293,6 +374,8 @@ void Room2::renderMonster(const mat4& view, const mat4& projection, GLuint shade
         if (monsterModel.textureID > 0) {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, monsterModel.textureID);
+            GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
             glUniform1i(UseTextureID, 1);
             glUniform3fv(MaterialColorID, 1, &monsterModel.baseColor[0]);
         } else {
@@ -301,6 +384,42 @@ void Room2::renderMonster(const mat4& view, const mat4& projection, GLuint shade
         }
         
         glDrawElements(GL_TRIANGLES, monsterModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
+void Room2::renderSeki(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (sekiModel.indexCount > 0) {
+        glBindVertexArray(sekiModel.VAO);
+
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
+
+        mat4 SekiModelMatrix = mat4(1.0f);
+        SekiModelMatrix = translate(SekiModelMatrix, vec3(-3.5f, 0.0f, -33.5f)); // Position: left-back, slightly in floor
+        SekiModelMatrix = rotate(SekiModelMatrix, radians(0.0f), vec3(0, 1, 0));
+        SekiModelMatrix = rotate(SekiModelMatrix, radians(0.0f), vec3(0, 0, 1));
+        SekiModelMatrix = rotate(SekiModelMatrix, radians(0.0f), vec3(1, 0, 0));
+        SekiModelMatrix = scale(SekiModelMatrix, vec3(0.1f, 0.1f, 0.1f));
+        mat4 SekiMVP = projection * view * SekiModelMatrix;
+
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SekiMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SekiModelMatrix[0][0]);
+
+        if (sekiModel.textureID > 0) {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, sekiModel.textureID);
+            GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1);
+            glUniform3fv(MaterialColorID, 1, &sekiModel.baseColor[0]);
+        } else {
+            glUniform1i(UseTextureID, 0);
+            glUniform3f(MaterialColorID, 0.7f, 0.6f, 0.5f);
+        }
+
+        glDrawElements(GL_TRIANGLES, sekiModel.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
 
@@ -454,7 +573,9 @@ void Room2::renderExhibits(const mat4& view, const mat4& projection, GLuint shad
             if (exhibit.model.textureID > 0) {
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, exhibit.model.textureID);
-                glUniform1i(UseTextureID, 0);
+                GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+                if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+                glUniform1i(UseTextureID, 1);
                 glUniform3fv(MaterialColorID, 1, &exhibit.model.baseColor[0]);
                 printf("  → Using texture ID: %u\n", exhibit.model.textureID);
             } else {

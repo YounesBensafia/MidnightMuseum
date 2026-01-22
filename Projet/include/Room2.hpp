@@ -45,6 +45,8 @@ private:
     FBXModel buddhaModel;
     FBXModel TutaModel;
     FBXModel monsterModel;
+    FBXModel sekiModel;
+    FBXModel torsoModel;
     std::vector<Exhibit> exhibits;
     
     // Helper methods
@@ -53,6 +55,8 @@ private:
     void renderBuddha(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderTuta(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderMonster(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderSeki(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderTorso(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderExhibits(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     
     // Data-driven configuration
