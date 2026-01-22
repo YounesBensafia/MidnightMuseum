@@ -47,14 +47,9 @@ void MuseumScene::init() {
 }
 
 void MuseumScene::initLights() {
-    // Corner lights setup - 2 per room positioned like lamps
+    // Disable corner lights for dark atmosphere - only activated spotlights will provide light
     cornerLights = {
-        vec3(-12.0f, 11.5f, -12.0f),  // Main room - back left corner
-        vec3(12.0f, 11.5f, -12.0f),   // Main room - back right corner
-        vec3(-5.0f, 11.5f, -20.0f),   // Hallway - left side
-        vec3(5.0f, 11.5f, -20.0f),    // Hallway - right side
-        vec3(-10.0f, 11.5f, -31.0f),  // Second room - back left corner
-        vec3(10.0f, 11.5f, -31.0f)    // Second room - back right corner
+        // All corner lights removed - scene starts dark
     };
 }
 
@@ -74,7 +69,10 @@ void MuseumScene::update(float dt) {
     hallway->update(dt, app.getWindow());
     room2->update(dt, app.getWindow());
 
-    checkCollisions();
+    // Only check collisions if not in inspection mode
+    if (!hallway->isInspecting()) {
+        checkCollisions();
+    }
 }
 
 void MuseumScene::checkCollisions() {
@@ -95,7 +93,9 @@ void MuseumScene::checkCollisions() {
     }
     
     if (collision) {
-        camera.position = lastValidPos;
+        // Only reset X and Z, keep the Y height
+        camera.position.x = lastValidPos.x;
+        camera.position.z = lastValidPos.z;
     } else {
         lastValidPos = camera.position;
     }
@@ -118,48 +118,64 @@ void MuseumScene::render() {
     glUniform3f(LightClrID, 1.0f, 1.0f, 1.0f);
     glUniform3fv(ViewPosID, 1, &camera.position[0]);
     
-    // Send all light positions to shader
-    for (size_t i = 0; i < cornerLights.size(); i++) {
+    // Combine corner lights with active table spotlights from Room1 and cabinet spotlights from Hallway
+    std::vector<vec3> allLights = cornerLights;
+    std::vector<vec3> activeSpotlights = room1->getActiveSpotlightPositions();
+    std::vector<vec3> hallwaySpotlights = hallway->getActiveSpotlightPositions();
+    allLights.insert(allLights.end(), activeSpotlights.begin(), activeSpotlights.end());
+    allLights.insert(allLights.end(), hallwaySpotlights.begin(), hallwaySpotlights.end());
+    
+    // Send all light positions to shader (max 6 from array size)
+    int numLightsToSend = std::min((int)allLights.size(), 9);
+    for (int i = 0; i < numLightsToSend; i++) {
         std::string lightPosName = "lightPos[" + std::to_string(i) + "]";
-        glUniform3fv(glGetUniformLocation(shaderProgram, lightPosName.c_str()), 1, &cornerLights[i][0]);
+        glUniform3fv(glGetUniformLocation(shaderProgram, lightPosName.c_str()), 1, &allLights[i][0]);
     }
-    glUniform1i(glGetUniformLocation(shaderProgram, "numLights"), (int)cornerLights.size());
+    glUniform1i(glGetUniformLocation(shaderProgram, "numLights"), numLightsToSend);
     
     // Flashlight spotlight
     glUniform3fv(glGetUniformLocation(shaderProgram, "spotLightPos"), 1, &camera.position[0]);
     glUniform3fv(glGetUniformLocation(shaderProgram, "spotLightDir"), 1, &camera.front[0]);
     glUniform1i(glGetUniformLocation(shaderProgram, "spotLightOn"), flashlightOn);
 
-    // Render shared large floor that spans entire museum
-    if (carpetModel.vertexCount > 0) {
-        glBindVertexArray(carpetModel.VAO);
+    // Check if in inspection mode
+    if (hallway->isInspecting()) {
+        // In inspection mode: only render the inspected object with simple lighting
+        hallway->updateInspectionCamera(View, Projection);
+        hallway->renderInspectionObject(shaderProgram);
+    } else {
+        // Normal rendering mode
+        // Render shared large floor that spans entire museum
+        if (carpetModel.vertexCount > 0) {
+            glBindVertexArray(carpetModel.VAO);
+            
+            GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+            GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+            GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+            GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+            
+            mat4 FloorModel = mat4(1.0f);
+            FloorModel = translate(FloorModel, vec3(0.0f, 0.0f, -5.0f)); // Shift center forward to cover Room1 back area
+            FloorModel = scale(FloorModel, vec3(15.0f, 1.0f, 30.0f)); // Increased Z scale to cover entire Room1
+            mat4 FloorMVP = Projection * View * FloorModel;
+            
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &FloorMVP[0][0]);
+            glUniformMatrix4fv(ModelID, 1, GL_FALSE, &FloorModel[0][0]);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, rm.getTexture("floor"));
+            glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1);
+            glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
+        }
         
-        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
-        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
-        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
-        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        // Render each room
+        room1->render(View, Projection, shaderProgram, flashlightOn);
+        hallway->render(View, Projection, shaderProgram);
+        room2->render(View, Projection, shaderProgram);
         
-        mat4 FloorModel = mat4(1.0f);
-        FloorModel = translate(FloorModel, vec3(0.0f, 0.0f, -14.0f)); // Center between all rooms
-        FloorModel = scale(FloorModel, vec3(15.0f, 1.0f, 20.0f)); // Large enough to cover all rooms
-        mat4 FloorMVP = Projection * View * FloorModel;
-        
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &FloorMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &FloorModel[0][0]);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, rm.getTexture("floor"));
-        glUniform1i(TextureID, 0);
-        glUniform1i(UseTextureID, 1);
-        glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
+        // Render flashlight
+        renderFlashlightModel(View, Projection);
     }
-    
-    // Render each room
-    room1->render(View, Projection, shaderProgram);
-    hallway->render(View, Projection, shaderProgram);
-    room2->render(View, Projection, shaderProgram);
-    
-    // Render flashlight
-    renderFlashlightModel(View, Projection);
     
     glBindVertexArray(0);
 }

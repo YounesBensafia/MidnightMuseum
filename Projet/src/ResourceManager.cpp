@@ -4,7 +4,9 @@
 #include "../include/stb_image.h"
 #include "../shader/shader/shader.hpp"
 
-// Implementations of load functions from main.cpp, but as methods
+// We only include fbxload.hpp because objload.hpp is already 
+// included inside ResourceManager.hpp
+#include "../model/fbxload.hpp"
 
 GLuint ResourceManager::loadTexture(const std::string& name, const char* path) {
     if (textures.find(name) != textures.end()) {
@@ -15,7 +17,11 @@ GLuint ResourceManager::loadTexture(const std::string& name, const char* path) {
     glGenTextures(1, &textureID);
     
     int width, height, nrChannels;
+    
+    // TEXTURE FIX: Keep this false if your OBJ loader math is flipping UVs
+    // If textures are still upside down after this, change this to true.
     stbi_set_flip_vertically_on_load(true);
+    
     unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
     
     if (data) {
@@ -37,7 +43,6 @@ GLuint ResourceManager::loadTexture(const std::string& name, const char* path) {
         stbi_image_free(data);
     } else {
         std::cout << "Failed to load texture: " << path << std::endl;
-        stbi_image_free(data);
     }
     
     textures[name] = textureID;
@@ -58,32 +63,23 @@ GLuint ResourceManager::getShader(const std::string& name) {
     return shaders[name];
 }
 
-// ... Copy loadModel, loadModelWithMaterial, loadFBXModel logic here ...
-// Since these are loose functions in main.cpp, we need to adapt them or link them properly.
-// For now, I will include the implementations directly or assume they are available via headers.
-// The headers objload.hpp/fbxload.hpp likely only DECLARE them if they were separate modules, 
-// but in main.cpp they were implemented.
-// Wait, looking at file list: objload.cpp and fbxload.cpp EXIST. 
-// So I don't need to re-implement loadOBJ/loadFBX, I just need to implement the wrapper `loadModel` which constructs the VAO/VBO.
-
-// Moving loadModel logic here
 Model ResourceManager::loadModel(const char* filepath, bool regenerateUVs) {
     Model model;
     model.name = filepath;
+    model.VAO = 0;
     
     std::vector<glm::vec3> positions;
     std::vector<glm::vec2> uvs;
     std::vector<glm::vec3> normals;
     
-    // We assume loadOBJ is available from objload.hpp included
+    // Call the original loadOBJ
     bool res = loadOBJ(filepath, positions, uvs, normals);
-    if (!res) {
-        printf("Failed to load: %s\n", filepath);
+    
+    if (!res || positions.empty()) {
+        printf("Failed to load or empty model: %s\n", filepath);
         model.vertexCount = 0;
         return model;
     }
-    
-    printf("Loaded %s: %zu vertices\n", filepath, positions.size());
     
     std::vector<Vertex> vertices;
     for (size_t i = 0; i < positions.size(); i++) {
@@ -92,8 +88,11 @@ Model ResourceManager::loadModel(const char* filepath, bool regenerateUVs) {
         
         if (regenerateUVs) {
             v.normal = glm::vec3(0, 1, 0);
-            float tileSize = 1.0f;
-            v.texture = glm::vec2(positions[i].x / tileSize, positions[i].z / tileSize);
+            // --- FLOOR TILING FIX ---
+            // We multiply by 10.0f to make the floor texture repeat 
+            // instead of stretching one big image.
+            float floorTiling = 5.0f; 
+            v.texture = glm::vec2(positions[i].x * floorTiling, positions[i].z * floorTiling);
         } else {
             v.normal = (i < normals.size()) ? normals[i] : glm::vec3(0, 1, 0);
             v.texture = (i < uvs.size()) ? uvs[i] : glm::vec2(0, 0);
@@ -101,57 +100,52 @@ Model ResourceManager::loadModel(const char* filepath, bool regenerateUVs) {
         vertices.push_back(v);
     }
     
-    model.vertexCount = vertices.size();
-    
+    model.vertexCount = (unsigned int)vertices.size();
     glGenVertexArrays(1, &model.VAO);
     glBindVertexArray(model.VAO);
-    
     glGenBuffers(1, &model.VBO);
     glBindBuffer(GL_ARRAY_BUFFER, model.VBO);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
     
+    // Attributes
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
     glEnableVertexAttribArray(0);
-    
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
     glEnableVertexAttribArray(1);
-    
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture));
     glEnableVertexAttribArray(2);
     
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-    
     return model;
 }
 
 ModelWithMaterial ResourceManager::loadModelWithMaterial(const char* filepath) {
     ModelWithMaterial model;
     model.name = filepath;
-    
+    model.VAO = 0;
+
     std::vector<glm::vec3> positions;
     std::vector<glm::vec2> uvs;
     std::vector<glm::vec3> normals;
     
     bool res = loadOBJWithMaterials(filepath, positions, uvs, normals, model.materialNames, model.materials);
-    if (!res) {
-        printf("Failed to load: %s\n", filepath);
+    
+    if (!res || positions.empty()) {
+        printf("Failed to load or empty model: %s\n", filepath);
         model.vertexCount = 0;
         return model;
     }
-    
-    printf("Loaded %s: %zu vertices\n", filepath, positions.size());
     
     std::vector<Vertex> vertices;
     for (size_t i = 0; i < positions.size(); i++) {
         Vertex v;
         v.position = positions[i];
-        v.normal = normals[i];
-        v.texture = uvs[i];
+        v.normal = (i < normals.size()) ? normals[i] : glm::vec3(0, 1, 0);
+        v.texture = (i < uvs.size()) ? uvs[i] : glm::vec2(0, 0);
         vertices.push_back(v);
     }
     
-    model.vertexCount = vertices.size();
+    model.vertexCount = (unsigned int)vertices.size();
     glGenVertexArrays(1, &model.VAO);
     glBindVertexArray(model.VAO);
     glGenBuffers(1, &model.VBO);
@@ -163,15 +157,11 @@ ModelWithMaterial ResourceManager::loadModelWithMaterial(const char* filepath) {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture));
     glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     
     return model;
 }
 
 FBXModel ResourceManager::loadFBXModel(const char* filepath) {
-    // This assumes ::loadFBXModel is globally available from #include "../model/fbxload.hpp"
-    // However, the global function name might conflict with this method name.
-    // We should call the global one.
     return ::loadFBXModel(filepath);
 }
