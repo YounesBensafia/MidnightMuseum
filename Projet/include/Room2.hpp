@@ -52,6 +52,7 @@ private:
     FBXModel modelStatus;
     FBXModel modelPyramid;
     FBXModel modelSphinx;
+    FBXModel showcaseModel;
     
     std::vector<Exhibit> exhibits;
     
@@ -62,6 +63,7 @@ private:
     void renderTuta(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderMonster(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderSeki(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderShowcase(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderTorso(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderMinEgy(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderStatus(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);

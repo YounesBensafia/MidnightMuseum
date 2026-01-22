@@ -17,7 +17,7 @@ void Room2::renderStatus(const glm::mat4& view, const glm::mat4& projection, GLu
 
         glm::mat4 modelStatusMatrix = glm::mat4(1.0f);
         // Example transform: adjust as needed for your scene
-        modelStatusMatrix = glm::translate(modelStatusMatrix, glm::vec3(-6.0f, 0.0f, -37.0f));
+        modelStatusMatrix = glm::translate(modelStatusMatrix, glm::vec3(-6.0f, 5.0f, -34.0f));
         modelStatusMatrix = glm::rotate(modelStatusMatrix, glm::radians(0.0f), glm::vec3(0, 1, 0));
         modelStatusMatrix = glm::rotate(modelStatusMatrix, glm::radians(0.0f), glm::vec3(0, 0, 1));
         modelStatusMatrix = glm::rotate(modelStatusMatrix, glm::radians(0.0f), glm::vec3(1, 0, 0));
@@ -264,6 +264,8 @@ void Room2::init() {
                 modelStatus = rm.loadFBXModel("model/egyptian_miniature.glb");
                 modelPyramid = rm.loadFBXModel("model/pyramid_figure_decoration.glb");
                 modelSphinx = rm.loadFBXModel("model/sandstone_sphinx_statue.glb");
+                showcaseModel = rm.loadFBXModel("model/glass_showcase.glb");
+
                 
 
                 // Debug: report loaded texture IDs (carpet is a Model without textureID)
@@ -293,6 +295,7 @@ void Room2::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderTorso(view, projection, shaderProgram);
     renderStatus(view, projection, shaderProgram);
     renderSeki(view, projection, shaderProgram);
+    renderShowcase(view, projection, shaderProgram);
     renderExhibits(view, projection, shaderProgram);
     renderPyramid(view, projection, shaderProgram);
     renderSphinx(view, projection, shaderProgram);
@@ -599,7 +602,7 @@ void Room2::renderSeki(const mat4& view, const mat4& projection, GLuint shaderPr
         GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
 
         mat4 SekiModelMatrix = mat4(1.0f);
-        SekiModelMatrix = translate(SekiModelMatrix, vec3(-3.5f, 0.0f, -33.5f)); // Position: left-back, slightly in floor
+        SekiModelMatrix = translate(SekiModelMatrix, vec3(-3.5f, -10.0f, -33.5f)); // Position: left-back, slightly in floor
         SekiModelMatrix = rotate(SekiModelMatrix, radians(0.0f), vec3(0, 1, 0));
         SekiModelMatrix = rotate(SekiModelMatrix, radians(0.0f), vec3(0, 0, 1));
         SekiModelMatrix = rotate(SekiModelMatrix, radians(0.0f), vec3(1, 0, 0));
@@ -813,5 +816,42 @@ void Room2::renderExhibits(const mat4& view, const mat4& projection, GLuint shad
         } else {
             printf("  ⚠ Skipping - no vertices!\n");
         }
+    }
+}
+
+void Room2::renderShowcase(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    if (showcaseModel.indexCount > 0) {
+        glBindVertexArray(showcaseModel.VAO);
+
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
+
+        mat4 ShowcaseModelMatrix = mat4(1.0f);
+        ShowcaseModelMatrix = translate(ShowcaseModelMatrix, vec3(-3.5f, 0.0f, -33.5f));
+        ShowcaseModelMatrix = scale(ShowcaseModelMatrix, vec3(1.0f, 1.0f, 1.0f));
+        mat4 ShowcaseMVP = projection * view * ShowcaseModelMatrix;
+
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &ShowcaseMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &ShowcaseModelMatrix[0][0]);
+
+        glActiveTexture(GL_TEXTURE0);
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        if (showcaseModel.textureID > 0) {
+            printf("[Showcase] Binding texture ID: %u\n", showcaseModel.textureID);
+            glBindTexture(GL_TEXTURE_2D, showcaseModel.textureID);
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1);
+            glUniform3fv(MaterialColorID, 1, &showcaseModel.baseColor[0]);
+        } else {
+            printf("[Showcase] WARNING: No texture found, using default color.\n");
+            glBindTexture(GL_TEXTURE_2D, 0);
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 0);
+            glUniform3f(MaterialColorID, 0.8f, 0.8f, 0.9f); // Slightly bluish glass color
+        }
+
+        glDrawElements(GL_TRIANGLES, showcaseModel.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
