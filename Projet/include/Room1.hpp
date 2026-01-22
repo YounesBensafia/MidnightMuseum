@@ -23,7 +23,10 @@ public:
 private:
     Application& app;
     ResourceManager& rm;
-    
+    float doorOpenAngle = 0.0f;   // Current angle
+    bool isDoorOpening = false;   // Toggle state
+    float doorTargetAngle = 90.0f; // Maximum open position
+    bool playerNearDoor = false;
     // Models specific to Room 1
     Model carpetModel;
     FBXModel showcaseModel;
@@ -43,7 +46,9 @@ private:
     FBXModel statueModel;
     FBXModel headModel;
     FBXModel wallLampModel;
-    
+    FBXModel doorFrameModel;
+    FBXModel doorModel;
+
     // Spotlight model for tables
     FBXModel spotlightModel;
     bool tableSpotlights[6]; // Track which table lights are on
@@ -66,7 +71,9 @@ private:
     void renderTableSpotlights(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderLamps(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderWallLamps(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+    void renderDoor(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
         
+    bool checkDoorCollision(const glm::vec3& newPos);   
     bool checkFossilCollision(const glm::vec3& newPos);
     bool checkTableCollision(const glm::vec3& newPos);
     bool checkWallCollision(const glm::vec3& newPos);

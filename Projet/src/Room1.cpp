@@ -44,6 +44,8 @@ void Room1::init() {
     statueModel = rm.loadFBXModel("model/statue.glb");
     headModel = rm.loadFBXModel("model/head.glb");
     wallLampModel = rm.loadFBXModel("model/wall_lamp.glb");
+    doorFrameModel = rm.loadFBXModel("model/doorframe.glb");
+    doorModel = rm.loadFBXModel("model/door.glb");
     initPromptUI();
 }
 
@@ -100,79 +102,67 @@ void Room1::update(float dt, GLFWwindow* window) {
     // Get camera position from application
     vec3 cameraPos = app.getCamera().position;
     
-    // Check if player is near the effigy
+    // --- 1. DISTANCE CHECKS ---
+    
     float distanceToEffigy = length(vec2(cameraPos.x - effigyPosition.x, cameraPos.z - effigyPosition.z));
     playerNearEffigy = (distanceToEffigy < interactionDistance);
     
-    // Check if player is near the coffin
     float distanceToCoffin = length(vec2(cameraPos.x - coffinPosition.x, cameraPos.z - coffinPosition.z));
     playerNearCoffin = (distanceToCoffin < interactionDistance);
     
-    // Check if player is near the mourning statue
     float distanceToMourning = length(vec2(cameraPos.x - mourningPosition.x, cameraPos.z - mourningPosition.z));
     playerNearMourning = (distanceToMourning < interactionDistance);
+
+    // Door is at X = -2.0, Z = -14.0
+    float distanceToDoor = length(vec2(cameraPos.x - (-2.0f), cameraPos.z - (-14.0f)));
+    playerNearDoor = (distanceToDoor < interactionDistance);
     
-    // Toggle effigy animation with E key when near
-    if (playerNearEffigy && !playerNearCoffin && !playerNearMourning) {
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-            if (!eKeyPressed) {
+    // --- 2. INPUT HANDLING (TOGGLES) ---
+
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        if (!eKeyPressed) {
+            // Door Toggle
+            if (playerNearDoor) {
+                isDoorOpening = !isDoorOpening;
+                printf("Door state: %s\n", isDoorOpening ? "OPENING" : "CLOSING");
+            }
+            // Effigy Toggle
+            else if (playerNearEffigy && !playerNearCoffin && !playerNearMourning) {
                 effigyAnimating = !effigyAnimating;
-                printf("Effigy animation: %s\n", effigyAnimating ? "ON" : "OFF");
-                // Turn on light for left front table (index 0) when effigy is activated
-                if (effigyAnimating) {
-                    tableSpotlights[0] = true;
-                    printf("Table spotlight 0 activated!\n");
-                }
-                eKeyPressed = true;
+                if (effigyAnimating) tableSpotlights[0] = true;
             }
-        } else {
-            eKeyPressed = false;
-        }
-    }
-    
-    // Toggle coffin animation with E key when near
-    if (playerNearCoffin && !playerNearEffigy && !playerNearMourning) {
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-            if (!eKeyPressed) {
+            // Coffin Toggle
+            else if (playerNearCoffin && !playerNearEffigy && !playerNearMourning) {
                 coffinAnimating = !coffinAnimating;
-                printf("Coffin animation: %s\n", coffinAnimating ? "ON" : "OFF");
-                // Turn on light for left back table (index 2) when coffin is activated
-                if (coffinAnimating) {
-                    tableSpotlights[2] = true;
-                    printf("Table spotlight 2 activated!\n");
-                }
-                eKeyPressed = true;
+                if (coffinAnimating) tableSpotlights[2] = true;
             }
-        } else {
-            eKeyPressed = false;
-        }
-    }
-    
-    // Toggle mourning statue light with E key when near
-    if (playerNearMourning && !playerNearEffigy && !playerNearCoffin) {
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-            if (!eKeyPressed) {
+            // Mourning Statue Toggle
+            else if (playerNearMourning && !playerNearEffigy && !playerNearCoffin) {
                 mourningActivated = !mourningActivated;
-                printf("Mourning statue: %s\n", mourningActivated ? "ACTIVATED" : "OFF");
-                // Turn on light for left middle table (index 1) when statue is activated
-                if (mourningActivated) {
-                    tableSpotlights[1] = true;
-                    printf("Table spotlight 1 activated!\n");
-                }
-                eKeyPressed = true;
+                if (mourningActivated) tableSpotlights[1] = true;
             }
-        } else {
-            eKeyPressed = false;
+            eKeyPressed = true;
         }
+    } else {
+        eKeyPressed = false;
     }
-    
-    // Update floating animation for effigy
+
+    // --- 3. ANIMATION CALCULATIONS ---
+
+    // Door Rotation (0 to 90 degrees)
+    float doorSpeed = 120.0f; // Degrees per second
+    if (isDoorOpening) {
+        if (doorOpenAngle < 90.0f) doorOpenAngle += doorSpeed * dt;
+    } else {
+        if (doorOpenAngle > 0.0f) doorOpenAngle -= doorSpeed * dt;
+    }
+    doorOpenAngle = clamp(doorOpenAngle, 0.0f, 90.0f);
+
+    // Effigy Floating
     if (effigyAnimating) {
         effigyAnimTime += dt;
-        // Smooth sine wave for floating effect
-        effigyFloatOffset = sin(effigyAnimTime * 2.0f) * 0.3f; // Floats up/down 0.3 units
+        effigyFloatOffset = sin(effigyAnimTime * 2.0f) * 0.3f;
     } else {
-        // Gradually return to original position
         effigyFloatOffset *= 0.9f;
         if (abs(effigyFloatOffset) < 0.01f) {
             effigyFloatOffset = 0.0f;
@@ -180,13 +170,11 @@ void Room1::update(float dt, GLFWwindow* window) {
         }
     }
     
-    // Update floating animation for coffin
+    // Coffin Floating
     if (coffinAnimating) {
         coffinAnimTime += dt;
-        // Smooth sine wave for floating effect
-        coffinFloatOffset = sin(coffinAnimTime * 2.0f) * 0.3f; // Floats up/down 0.3 units
+        coffinFloatOffset = sin(coffinAnimTime * 2.0f) * 0.3f;
     } else {
-        // Gradually return to original position
         coffinFloatOffset *= 0.9f;
         if (abs(coffinFloatOffset) < 0.01f) {
             coffinFloatOffset = 0.0f;
@@ -218,28 +206,26 @@ void Room1::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderChandelier(view, projection, shaderProgram);
     renderTableSpotlights(view, projection, shaderProgram);
     renderNewArtifacts(view, projection, shaderProgram);
-    renderEKeyPrompt(projection);
     renderLamps(view, projection, shaderProgram);
     renderWallLamps(view, projection, shaderProgram);
+    renderEKeyPrompt(projection);
+    renderDoor(view, projection, shaderProgram); // Add this
 }
 
 void Room1::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
     GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
     GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
-    GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
     
     if (carpetModel.vertexCount > 0) {
         glBindVertexArray(carpetModel.VAO);
         
-        // FLOOR - Removed to prevent z-fighting with main floor in MuseumScene
-        // The main floor in MuseumScene.cpp covers the entire museum
-        
-        // CEILING - Main room (Room extends from x=-24 to 24, z=-14 to 34)
+        // CEILING - Increased scale slightly to 12.5f to overlap all four walls
         mat4 CeilingModel = mat4(1.0f);
-        CeilingModel = translate(CeilingModel, vec3(0.0f, 24.0f, 10.0f));  // Center at z=10 (midpoint of -14 and 34)
+        CeilingModel = translate(CeilingModel, vec3(0.0f, 24.0f, 10.0f));  
         CeilingModel = rotate(CeilingModel, radians(180.0f), vec3(1, 0, 0));
-        CeilingModel = scale(CeilingModel, vec3(12.0f, 1.0f, 12.0f));
+        CeilingModel = scale(CeilingModel, vec3(12.5f, 1.0f, 12.5f)); 
+        
         mat4 CeilingMVP = projection * view * CeilingModel;
         
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &CeilingMVP[0][0]);
@@ -262,98 +248,126 @@ void Room1::renderWalls(const mat4& view, const mat4& projection, GLuint shaderP
         
         float wallThickness = 0.3f;
         
-        // WALL - SOUTH (front)
+        // WALL - SOUTH (front) - Scale increased to overlap East/West corners
         mat4 WallSouth = mat4(1.0f);
         WallSouth = translate(WallSouth, vec3(0.0f, 12.0f, 34.0f));
         WallSouth = rotate(WallSouth, radians(-90.0f), vec3(1, 0, 0));
-        WallSouth = scale(WallSouth, vec3(12.0f, 1.0f, 12.0f));
+        WallSouth = scale(WallSouth, vec3(12.5f, 1.0f, 12.5f)); 
         mat4 WallSouthMVP = projection * view * WallSouth;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &WallSouthMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &WallSouth[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
         
-        // WALL - EAST (right)
+        // WALL - EAST (right) - Scale increased
         mat4 WallEast = mat4(1.0f);
         WallEast = translate(WallEast, vec3(24.0f, 12.0f, 10.0f));
         WallEast = rotate(WallEast, radians(90.0f), vec3(1, 0, 0));
         WallEast = rotate(WallEast, radians(90.0f), vec3(0, 0, 1));
-        WallEast = scale(WallEast, vec3(12.0f, 1.0f, 12.0f));
+        WallEast = scale(WallEast, vec3(12.5f, 1.0f, 12.5f));
         mat4 WallEastMVP = projection * view * WallEast;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &WallEastMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &WallEast[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
         
-        // WALL - WEST (left)
+        // WALL - WEST (left) - Scale increased
         mat4 WallWest = mat4(1.0f);
         WallWest = translate(WallWest, vec3(-24.0f, 12.0f, 10.0f));
         WallWest = rotate(WallWest, radians(90.0f), vec3(1, 0, 0));
         WallWest = rotate(WallWest, radians(-90.0f), vec3(0, 0, 1));
-        WallWest = scale(WallWest, vec3(12.0f, 1.0f, 12.0f));
+        WallWest = scale(WallWest, vec3(12.5f, 1.0f, 12.5f));
         mat4 WallWestMVP = projection * view * WallWest;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &WallWestMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &WallWest[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
         
-        // WALL - NORTH (back) - WITH DOORWAY TO HALLWAY
-        // North wall - Left side of doorway (front face)
+        // WALL - NORTH (back) - Slightly overlap pieces to prevent seams
+        // North wall - Left side
         mat4 WallNorthLeft = mat4(1.0f);
         WallNorthLeft = translate(WallNorthLeft, vec3(-14.0f, 12.0f, -14.0f));
         WallNorthLeft = rotate(WallNorthLeft, radians(90.0f), vec3(1, 0, 0));
-        WallNorthLeft = scale(WallNorthLeft, vec3(5.0f, 1.0f, 12.0f));
+        WallNorthLeft = scale(WallNorthLeft, vec3(5.5f, 1.0f, 12.5f)); // Increased width and height
         mat4 WallNorthLeftMVP = projection * view * WallNorthLeft;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &WallNorthLeftMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &WallNorthLeft[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
         
-        // North wall - Left side (back face for thickness)
-        mat4 WallNorthLeftBack = mat4(1.0f);
-        WallNorthLeftBack = translate(WallNorthLeftBack, vec3(-14.0f, 12.0f, -14.0f - wallThickness));
-        WallNorthLeftBack = rotate(WallNorthLeftBack, radians(-90.0f), vec3(1, 0, 0));
-        WallNorthLeftBack = scale(WallNorthLeftBack, vec3(5.0f, 1.0f, 12.0f));
-        mat4 WallNorthLeftBackMVP = projection * view * WallNorthLeftBack;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &WallNorthLeftBackMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &WallNorthLeftBack[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
-        
-        // North wall - Right side of doorway (front face)
+        // North wall - Right side
         mat4 WallNorthRight = mat4(1.0f);
         WallNorthRight = translate(WallNorthRight, vec3(14.0f, 12.0f, -14.0f));
         WallNorthRight = rotate(WallNorthRight, radians(90.0f), vec3(1, 0, 0));
-        WallNorthRight = scale(WallNorthRight, vec3(5.0f, 1.0f, 12.0f));
+        WallNorthRight = scale(WallNorthRight, vec3(5.5f, 1.0f, 12.5f));
         mat4 WallNorthRightMVP = projection * view * WallNorthRight;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &WallNorthRightMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &WallNorthRight[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
         
-        // North wall - Right side (back face)
-        mat4 WallNorthRightBack = mat4(1.0f);
-        WallNorthRightBack = translate(WallNorthRightBack, vec3(14.0f, 12.0f, -14.0f - wallThickness));
-        WallNorthRightBack = rotate(WallNorthRightBack, radians(-90.0f), vec3(1, 0, 0));
-        WallNorthRightBack = scale(WallNorthRightBack, vec3(5.0f, 1.0f, 12.0f));
-        mat4 WallNorthRightBackMVP = projection * view * WallNorthRightBack;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &WallNorthRightBackMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &WallNorthRightBack[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
-        
-        // North wall - Top of doorway (front face)
+        // North wall - Top of doorway
         mat4 WallNorthTop = mat4(1.0f);
         WallNorthTop = translate(WallNorthTop, vec3(0.0f, 16.0f, -14.0f));
         WallNorthTop = rotate(WallNorthTop, radians(90.0f), vec3(1, 0, 0));
-        WallNorthTop = scale(WallNorthTop, vec3(4.0f, 1.0f, 4.0f));
+        WallNorthTop = scale(WallNorthTop, vec3(4.5f, 1.0f, 4.5f)); // Increased to bridge the left/right sections
         mat4 WallNorthTopMVP = projection * view * WallNorthTop;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &WallNorthTopMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &WallNorthTop[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
+
+        // (Note: NorthBack faces would follow same scale increases)
+    }
+}
+
+void Room1::renderDoor(const mat4& view, const mat4& projection, GLuint shaderProgram) {
+    GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+    GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+    GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+    GLuint TextureSamplerID = glGetUniformLocation(shaderProgram, "ourTexture");
+
+    vec3 doorPos = vec3(-2.0f, 3.0f, -14.0f); 
+    float doorScale = 0.012f; 
+
+    // --- RENDER DOOR FRAME (Static) ---
+    if (doorFrameModel.vertexCount > 0) {
+        glBindVertexArray(doorFrameModel.VAO);
+        mat4 model = translate(mat4(1.0f), doorPos);
+        model = scale(model, vec3(doorScale)); 
+        mat4 mvp = projection * view * model;
         
-        // North wall - Top (back face)
-        mat4 WallNorthTopBack = mat4(1.0f);
-        WallNorthTopBack = translate(WallNorthTopBack, vec3(0.0f, 16.0f, -14.0f - wallThickness));
-        WallNorthTopBack = rotate(WallNorthTopBack, radians(-90.0f), vec3(1, 0, 0));
-        WallNorthTopBack = scale(WallNorthTopBack, vec3(4.0f, 1.0f, 4.0f));
-        mat4 WallNorthTopBackMVP = projection * view * WallNorthTopBack;
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &WallNorthTopBackMVP[0][0]);
-        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &WallNorthTopBack[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, carpetModel.vertexCount);
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &model[0][0]);
+        
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, doorFrameModel.textureID);
+        glUniform1i(TextureSamplerID, 0);
+        glUniform1i(UseTextureID, 1);
+        
+        glDrawElements(GL_TRIANGLES, doorFrameModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+
+    // --- RENDER DOOR BODY (Animated) ---
+    if (doorModel.vertexCount > 0) {
+        glBindVertexArray(doorModel.VAO);
+        
+        mat4 model = mat4(1.0f);
+        // 1. Move the hinge to the correct world position
+        model = translate(model, doorPos);
+        
+        // 2. Rotate the door body around its Y-axis (hinge)
+        // Note: Change to -doorOpenAngle if it swings the wrong way
+        model = rotate(model, radians(doorOpenAngle), vec3(0.0f, 1.0f, 0.0f));
+        
+        // 3. Apply the scale
+        model = scale(model, vec3(doorScale));
+        
+        mat4 mvp = projection * view * model;
+        
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &model[0][0]);
+        
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, doorModel.textureID); 
+        glUniform1i(TextureSamplerID, 0);
+        glUniform1i(UseTextureID, 1);
+        
+        glDrawElements(GL_TRIANGLES, doorModel.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
 
@@ -595,42 +609,46 @@ void Room1::renderLamps(const mat4& view, const mat4& projection, GLuint shaderP
 }
 
 void Room1::renderEKeyPrompt(const mat4& projection) {
-    if ((!playerNearEffigy && !playerNearCoffin && !playerNearMourning) || promptVAO == 0) return;
+    // UPDATED: Added playerNearDoor to the visibility check
+    bool shouldShowPrompt = playerNearEffigy || playerNearCoffin || 
+                           playerNearMourning || playerNearDoor;
+
+    if (!shouldShowPrompt || promptVAO == 0) return;
     
     // Get shader program from ResourceManager
     GLuint shaderProgram = rm.getShader("mainShader");
     glUseProgram(shaderProgram);
     
-    // Disable depth test for 2D overlay
+    // Disable depth test for 2D overlay (so it draws over the world)
     GLint oldDepthFunc;
     glGetIntegerv(GL_DEPTH_FUNC, &oldDepthFunc);
     glDepthFunc(GL_ALWAYS);
     
     glBindVertexArray(promptVAO);
     
-    // Create identity matrix for 2D rendering (no 3D transformations)
+    // Create matrix for 2D rendering
     mat4 model = mat4(1.0f);
-    // Position at bottom-center of screen in NDC space
+    // Position at bottom-center of screen in NDC space (-1 to 1)
     model = translate(model, vec3(0.0f, -0.8f, 0.0f));
-    model = scale(model, vec3(0.8f, 0.8f, 1.0f)); // Small square
+    model = scale(model, vec3(0.8f, 0.8f, 1.0f)); 
     
     GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
     GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
     GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
     GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
     
-    // Use orthographic projection for 2D
+    // Use orthographic projection (identity) for 2D UI
     mat4 orthoProj = mat4(1.0f);
     mat4 mvp = orthoProj * model;
     
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
     glUniformMatrix4fv(ModelID, 1, GL_FALSE, &model[0][0]);
-    glUniform1i(UseTextureID, 0); // Don't use texture, use solid color
+    glUniform1i(UseTextureID, 0); // Solid color mode
     
-    // Solid white color for the E letter
+    // Solid white color for the "E" shape
     glUniform3f(MaterialColorID, 1.0f, 1.0f, 1.0f);
     
-    // Draw all triangles (4 rectangles = 24 vertices)
+    // Draw the "E" geometry (assumes 4 rectangles/24 vertices)
     glDrawArrays(GL_TRIANGLES, 0, 24);
     
     glBindVertexArray(0);
@@ -639,7 +657,7 @@ void Room1::renderEKeyPrompt(const mat4& projection) {
 
 bool Room1::checkCollision(const vec3& newPos) {
     return checkFossilCollision(newPos) || checkWallCollision(newPos) || checkTableCollision(newPos) ||
-           checkRopeBarrierCollision(newPos) || checkSkullCollision(newPos) || checkMourningStatueCollision(newPos);
+           checkRopeBarrierCollision(newPos) || checkSkullCollision(newPos) || checkMourningStatueCollision(newPos) || checkDoorCollision(newPos);;
 }
 
 bool Room1::checkFossilCollision(const vec3& newPos) {
@@ -647,6 +665,29 @@ bool Room1::checkFossilCollision(const vec3& newPos) {
     float fossilRadius = 2.5f;
     float distance = length(vec2(newPos.x - fossilPos.x, newPos.z - fossilPos.z));
     return distance < fossilRadius;
+}
+
+bool Room1::checkDoorCollision(const vec3& newPos) {
+    // 1. If the door is open significantly, disable the collision box
+    // 70 degrees is a good threshold for the player to "fit" through
+    if (doorOpenAngle > 70.0f) {
+        return false;
+    }
+
+    // 2. Define the static collision area (while door is closed)
+    // Doorway is at z = -14.0
+    float doorZ = -14.0f;
+    float thickness = 0.6f; 
+    
+    // We block the opening from X = -4.0 to X = 4.0
+    // Adjust these values to match the visual gap in your wall
+    bool withinX = (newPos.x >= -4.0f && newPos.x <= 4.0f);
+    
+    // Check if player's current/new position overlaps with the door's Z thickness
+    bool withinZ = (newPos.z < doorZ + thickness && newPos.z > doorZ - thickness);
+
+    // Return true to block movement if within the door's area while it's closed
+    return (withinX && withinZ);
 }
 
 bool Room1::checkTableCollision(const vec3& newPos) {
@@ -1222,7 +1263,7 @@ std::vector<vec3> Room1::getActiveSpotlightPositions() const {
     activePositions.push_back(vec3(22.5f, 17.0f, 25.0f));
     activePositions.push_back(vec3(22.5f, 19.0f, 10.0f));
 
-    activePositions.push_back(vec3(0.0f, 15.0f, 10.0f));
+    activePositions.push_back(vec3(0.0f, 17.5f, 10.0f));
 
     return activePositions;
 }
