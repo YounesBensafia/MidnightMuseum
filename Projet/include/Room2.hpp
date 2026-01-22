@@ -51,6 +51,7 @@ private:
     FBXModel modelMinEgy;
     FBXModel modelStatus;
     FBXModel modelPyramid;
+    FBXModel modelSphinx;
     
     std::vector<Exhibit> exhibits;
     
@@ -66,7 +67,8 @@ private:
     void renderStatus(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderPyramid(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderExhibits(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
-    
+    void renderSphinx(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
+
     // Data-driven configuration
     std::vector<ExhibitData> loadGalleryData();
     void initializeExhibits();

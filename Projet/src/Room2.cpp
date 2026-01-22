@@ -109,17 +109,60 @@ void Room2::renderPyramid(const glm::mat4& view, const glm::mat4& projection, GL
 
         glActiveTexture(GL_TEXTURE0);
         GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
         if (modelPyramid.textureID > 0) {
+            printf("[Pyramid] Binding texture ID: %u\n", modelPyramid.textureID);
             glBindTexture(GL_TEXTURE_2D, modelPyramid.textureID);
             glUniform1i(UseTextureID, 1);
+            glUniform3fv(MaterialColorID, 1, &modelPyramid.baseColor[0]);
         } else {
+            printf("[Pyramid] WARNING: No texture found, using default color.\n");
             glBindTexture(GL_TEXTURE_2D, 0);
             glUniform1i(UseTextureID, 0);
+            // Sand/gold color
+            glUniform3f(MaterialColorID, 0.9f, 0.8f, 0.5f);
         }
-        // If you want to set a default color, uncomment the next line:
-        // glUniform3fv(MaterialColorID, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 1.0f)));
 
         glDrawElements(GL_TRIANGLES, modelPyramid.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+// Render the Sphinx (modelSphinx)
+void Room2::renderSphinx(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram) {
+    if (modelSphinx.indexCount > 0) {
+        glBindVertexArray(modelSphinx.VAO);
+
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
+
+        glm::mat4 SphinxModelMatrix = glm::mat4(1.0f);
+        SphinxModelMatrix = glm::translate(SphinxModelMatrix, glm::vec3(9.0f, 0.0f, -30.0f));
+        SphinxModelMatrix = glm::rotate(SphinxModelMatrix, glm::radians(90.0f), glm::vec3(0, 1, 0));
+        SphinxModelMatrix = glm::rotate(SphinxModelMatrix, glm::radians(180.0f), glm::vec3(0, 0, 1));
+        SphinxModelMatrix = glm::rotate(SphinxModelMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
+        SphinxModelMatrix = glm::scale(SphinxModelMatrix, glm::vec3(0.8f, 0.8f, 0.8f));
+        glm::mat4 SphinxMVP = projection * view * SphinxModelMatrix;
+
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &SphinxMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &SphinxModelMatrix[0][0]);
+
+        glActiveTexture(GL_TEXTURE0);
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+        if (modelSphinx.textureID > 0) {
+            printf("[Sphinx] Binding texture ID: %u\n", modelSphinx.textureID);
+            glBindTexture(GL_TEXTURE_2D, modelSphinx.textureID);
+            glUniform1i(UseTextureID, 1);
+            glUniform3fv(MaterialColorID, 1, &modelSphinx.baseColor[0]);
+        } else {
+            printf("[Sphinx] WARNING: No texture found, using default color.\n");
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glUniform1i(UseTextureID, 0);
+            glUniform3f(MaterialColorID, 0.8f, 0.7f, 0.5f); // Default limestone color
+        }
+
+        glDrawElements(GL_TRIANGLES, modelSphinx.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
 // Ensure all required headers are included for OpenGL and GLM symbols
@@ -199,6 +242,7 @@ void Room2::init() {
                 torsoModel = rm.loadFBXModel("model/torso_de_tutmosis_iii.glb");
                 modelStatus = rm.loadFBXModel("model/egyptian_miniature.glb");
                 modelPyramid = rm.loadFBXModel("model/pyramid_figure_decoration.glb");
+                modelSphinx = rm.loadFBXModel("model/sandstone_sphinx_statue.glb");
                 
 
                 // Debug: report loaded texture IDs (carpet is a Model without textureID)
@@ -230,6 +274,8 @@ void Room2::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderSeki(view, projection, shaderProgram);
     renderExhibits(view, projection, shaderProgram);
     renderPyramid(view, projection, shaderProgram);
+    renderSphinx(view, projection, shaderProgram);
+
 }
 
 void Room2::renderFloorAndCeiling(const mat4& view, const mat4& projection, GLuint shaderProgram) {
@@ -439,25 +485,26 @@ void Room2::renderBuddha(const mat4& view, const mat4& projection, GLuint shader
 
 void Room2::renderTuta(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     if (TutaModel.indexCount > 0) {
-        printf("Rendering Tuta: VAO=%d, indexCount=%d, textureID=%d\n", TutaModel.VAO, TutaModel.indexCount, TutaModel.textureID);
-        
+        printf("[DEBUG] Rendering Tuta: VAO=%d, indexCount=%d, textureID=%d\n", TutaModel.VAO, TutaModel.indexCount, TutaModel.textureID);
+        // Move Tuta to the center of the room and raise it for visibility
         glBindVertexArray(TutaModel.VAO);
-        
+
         GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
         GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
         GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
         GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
-        
+
         mat4 TutaModelMatrix = mat4(1.0f);
-        TutaModelMatrix = translate(TutaModelMatrix, vec3(11.5f, 6.0f, -30.5f));  // Right side, opposite of Buddha
+        // Center of the room, raised up for visibility
+        TutaModelMatrix = translate(TutaModelMatrix, vec3(0.0f, 0.0f, -28.0f));
         TutaModelMatrix = rotate(TutaModelMatrix, radians(-100.0f), vec3(0, 0, 1));
         TutaModelMatrix = rotate(TutaModelMatrix, radians(57.0f), vec3(1, 0, 0));
-        TutaModelMatrix = scale(TutaModelMatrix, vec3(3.0f, 3.0f, 3.0f));
+        TutaModelMatrix = scale(TutaModelMatrix, vec3(8.0f, 8.0f, 8.0f));
         mat4 TutaMVP = projection * view * TutaModelMatrix;
-        
+
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &TutaMVP[0][0]);
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &TutaModelMatrix[0][0]);
-        
+
         glActiveTexture(GL_TEXTURE0);
         GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
         if (TutaModel.textureID > 0) {
@@ -473,10 +520,11 @@ void Room2::renderTuta(const mat4& view, const mat4& projection, GLuint shaderPr
             glUniform1i(UseTextureID, 0);
             glUniform3f(MaterialColorID, 0.8f, 0.7f, 0.5f);  // Golden color for Tutankhamun
         }
-        
+
+        printf("[DEBUG] Drawing Tuta at position (0, 5, -28) with scale 3.0\n");
         glDrawElements(GL_TRIANGLES, TutaModel.indexCount, GL_UNSIGNED_INT, 0);
     } else {
-        printf("Tuta model not loaded: indexCount=%d\n", TutaModel.indexCount);
+        printf("[ERROR] Tuta model not loaded: indexCount=%d\n", TutaModel.indexCount);
     }
 }
 
