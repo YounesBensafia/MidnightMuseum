@@ -101,42 +101,42 @@ FBXModel loadFBXModel(const char* filepath) {
                 if (material->GetTextureCount(texType) > 0) {
                     aiString texPath;
                     material->GetTexture(texType, 0, &texPath);
-                    
+
                     std::cout << "Found texture of type " << texTypeIdx << ": " << texPath.C_Str() << std::endl;
-                    
+
                     // Check if texture is embedded (starts with *)
                     if (texPath.C_Str()[0] == '*') {
                         int texIndex = atoi(&texPath.C_Str()[1]);
                         if (texIndex >= 0 && texIndex < (int)scene->mNumTextures) {
                             aiTexture* embeddedTex = scene->mTextures[texIndex];
-                            
+
                             if (!embeddedTex || !embeddedTex->pcData) {
                                 std::cerr << "ERROR: Embedded texture data is NULL" << std::endl;
                                 continue;
                             }
-                            
+
                             std::cout << "Processing embedded texture index " << texIndex << ", format: " << embeddedTex->achFormatHint << std::endl;
-                            
+
                             glGenTextures(1, &model.textureID);
                             glBindTexture(GL_TEXTURE_2D, model.textureID);
-                            
+
                             if (embeddedTex->mHeight == 0) {
                                 // Compressed texture (PNG, JPG, etc.)
                                 std::cout << "Compressed texture, size: " << embeddedTex->mWidth << " bytes" << std::endl;
-                                
+
                                 // Safety check - texture should be at least 1KB
                                 if (embeddedTex->mWidth < 100) {
                                     std::cerr << "WARNING: Texture size too small (" << embeddedTex->mWidth << " bytes), likely corrupted. Skipping." << std::endl;
                                     continue;
                                 }
-                                
+
                                 int width, height, channels;
                                 unsigned char* data = stbi_load_from_memory(
                                     reinterpret_cast<unsigned char*>(embeddedTex->pcData),
                                     embeddedTex->mWidth,
                                     &width, &height, &channels, 0
                                 );
-                                
+
                                 if (data) {
                                     GLenum format = (channels == 4) ? GL_RGBA : GL_RGB;
                                     glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
@@ -155,7 +155,30 @@ FBXModel loadFBXModel(const char* filepath) {
                                 glGenerateMipmap(GL_TEXTURE_2D);
                                 std::cout << "Loaded uncompressed embedded texture from GLB (" << embeddedTex->mWidth << "x" << embeddedTex->mHeight << ")" << std::endl;
                             }
-                            
+
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                        }
+                    } else {
+                        // Texture path is external/relative. Attempt to load from disk.
+                        std::string texFile = texPath.C_Str();
+                        // Build full path relative to model file
+                        std::string modelPath = filepath;
+                        size_t pos = modelPath.find_last_of("/\\");
+                        std::string dir = (pos == std::string::npos) ? std::string(".") : modelPath.substr(0, pos);
+                        std::string fullPath = dir + "/" + texFile;
+
+                        int width, height, channels;
+                        unsigned char* data = stbi_load(fullPath.c_str(), &width, &height, &channels, 0);
+                        if (data) {
+                            glGenTextures(1, &model.textureID);
+                            glBindTexture(GL_TEXTURE_2D, model.textureID);
+                            GLenum format = (channels == 4) ? GL_RGBA : GL_RGB;
+                            glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+                            glGenerateMipmap(GL_TEXTURE_2D);
+                            stbi_image_free(data);
                             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
                             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
                             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -166,36 +189,36 @@ FBXModel loadFBXModel(const char* filepath) {
             }
         }
     }
-    
-    // Create VAO, VBO, and EBO
+
+    // Create VAO, VBO, and EBO (always, after texture loading)
     glGenVertexArrays(1, &model.VAO);
     glGenBuffers(1, &model.VBO);
     glGenBuffers(1, &model.EBO);
-    
+
     glBindVertexArray(model.VAO);
-    
+
     glBindBuffer(GL_ARRAY_BUFFER, model.VBO);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(FBXVertex), vertices.data(), GL_STATIC_DRAW);
-    
+
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model.EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-    
+
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(FBXVertex), (void*)0);
     glEnableVertexAttribArray(0);
-    
+
     // Normal attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(FBXVertex), (void*)offsetof(FBXVertex, normal));
     glEnableVertexAttribArray(1);
-    
+
     // Texture coord attribute
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(FBXVertex), (void*)offsetof(FBXVertex, texCoords));
     glEnableVertexAttribArray(2);
-    
+
     glBindVertexArray(0);
-    
+
     std::cout << "Loaded FBX model: " << filepath << " (" << model.vertexCount << " vertices, " << model.indexCount << " indices)" << std::endl;
-    
+
     return model;
 }
 
