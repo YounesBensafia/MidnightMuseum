@@ -1,4 +1,4 @@
-<img width="604" height="338" alt="image" src="https://github.com/user-attachments/assets/08e5b15e-abd0-4c34-a636-2bb1d4c336b7" /># Night at the Museum: Interactive 3D Virtual Tour
+# Night at the Museum: Interactive 3D Virtual Tour
 
 An immersive 3D museum experience developed using **OpenGL 3.3** for the "Synthèse d'Images" module at **USTHB**. This project explores real-time rendering, dynamic lighting systems, and interactive gameplay mechanics within a high-fidelity virtual environment.
 
