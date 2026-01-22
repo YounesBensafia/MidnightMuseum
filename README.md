@@ -1,171 +1,85 @@
-# Projet Museum 3D - Synthèse d'Image
+<img width="604" height="338" alt="image" src="https://github.com/user-attachments/assets/08e5b15e-abd0-4c34-a636-2bb1d4c336b7" /># Night at the Museum: Interactive 3D Virtual Tour
 
-## Description
-Ce projet est un musée virtuel 3D interactif développé en OpenGL avec C++. Le joueur peut se déplacer librement dans le musée et observer différents objets exposés.
+An immersive 3D museum experience developed using **OpenGL 3.3** for the "Synthèse d'Images" module at **USTHB**. This project explores real-time rendering, dynamic lighting systems, and interactive gameplay mechanics within a high-fidelity virtual environment.
 
-## Fonctionnalités Obligatoires Implémentées ✅
+## Technical Specifications
 
-### 1. Animation
-- **Rotation continue** des objets centraux du musée
-- **Oscillation verticale** pour certains exhibits (mouvement haut/bas)
-- **Rotations différenciées** : chaque objet a son propre style d'animation
-- **Lumière dynamique** qui tourne autour de la scène
+* **Language:** C++17 (Compilateur MinGW-w64 GCC 15.2.0)
+* **Graphics API:** OpenGL 3.3 Core Profile via GLAD
+* **Libraries:** * **GLFW 3.4.0:** Window management and input handling
+* **GLM:** Matrix and vector mathematics
+* **Assimp 6.0.3:** Complex 3D model loading (FBX, GLB)
+* **stb_image:** Texture decoding
 
-### 2. Interaction avec l'utilisateur
-- **Déplacement WASD** :
-  - `W` : Avancer
-  - `S` : Reculer
-  - `A` : Gauche
-  - `D` : Droite
-- **Contrôle de la caméra à la souris** (vue FPS)
-- **Molette de la souris** : Zoom in/out
-- **ESC** : Quitter l'application
-- **Hauteur fixe** : La caméra reste à hauteur d'yeux (1.8m) comme un visiteur réel
 
-### 3. Éclairage
-- **Lumière ambiante** : Illumination de base du musée (30%)
-- **Lumière diffuse** : Éclairage directionnel des objets (50%)
-- **Lumière spéculaire** : Reflets brillants sur les surfaces (70%)
-- **Lumière dynamique** qui se déplace dans le musée pour créer une atmosphère vivante
+* **Build System:** CMake with automated deployment scripts
 
-## Fonctionnalités Bonus 🌟
+## Core Features
 
-### Multiples Exhibits
-- 5 objets exposés positionnés stratégiquement dans le musée
-- Chaque objet a sa propre animation unique
-- Textures variées pour différencier les exhibits
+* **High-Fidelity Rendering:** Optimized pipeline managing approximately 2.7 million triangles while maintaining a stable 60 FPS.
+* **Lighting Engine:** Implementation of the **Phong Reflection Model** (Ambient, Diffuse, Specular) with multiple light types:
+* **Flashlight:** A camera-aligned Spotlight (Toggle via F).
+* **Static Lights:** Ambient chandelier and soft-light gallery projectors.
+* **Interactive Lights:** Context-aware illumination for statues and artifacts.
 
-### Environnement du Musée
-- Sol du musée avec texture
-- Atmosphère sombre et réaliste (couleur de fond appropriée)
-- Espace large pour explorer
 
-### Système de Caméra Avancé
-- Caméra First-Person fluide
-- Contrainte de pitch pour éviter les retournements
-- Vitesse de mouvement réaliste
-- Sensibilité de souris ajustable
+* **Physics & Navigation:** FPS-style camera with vertical clamping and delta-time synchronization. Collision detection is handled via **Oriented Bounding Boxes (OBB)**.
+* **Interactive Gameplay:** Scripted door animations, spatialized audio feedback, and a specialized **Inspection Mode** for detailed object observation.
 
-## Structure du Projet
+## Screenshots
 
-```
-Projet/
-├── main.cpp                    # Code principal du musée
-├── CMakeLists.txt             # Configuration de compilation
-├── build_run.bat              # Script de compilation et exécution
-├── include/
-│   ├── Camera.hpp             # Système de caméra FPS
-│   ├── glad/                  # OpenGL loader
-│   └── KHR/
-├── shader/shader/
-│   ├── SimpleVertexShader.vertexshader    # Vertex shader avec lighting
-│   ├── SimpleFragmentShader.fragmentshader # Fragment shader avec Phong
-│   └── shader.cpp/hpp         # Chargeur de shaders
-├── model/
-│   ├── objload.cpp/hpp        # Loader OBJ
-│   └── torus.obj              # Modèle 3D
-├── textures/
-│   └── *.raw                  # Fichiers de textures
-└── src/
-    └── glad.c                 # GLAD implementation
-```
+### Main Exhibition Hall
 
-## Compilation et Exécution
+The main hall features high-density 3D models including dinosaur fossils and statues, demonstrating the engine's ability to handle complex geometries.
+<img width="604" height="338" alt="image" src="https://github.com/user-attachments/assets/cb71f2b9-ec0f-412c-95ad-fcbc22fb0b7c" />
 
-### Méthode 1 : Script automatique
+### Lighting and Atmosphere
+
+Demonstration of the dynamic lighting system, showcasing the player's flashlight and the environmental contrast created by the Phong reflection model.
+<img width="567" height="315" alt="image" src="https://github.com/user-attachments/assets/125af5d7-706d-46fc-9157-fbb83c7eb0cc" />
+
+### Inspection Mode
+
+A dedicated mode that allows users to lock onto an artifact and rotate it 360 degrees for a detailed view of its topology and textures.
+<img width="637" height="358" alt="image" src="https://github.com/user-attachments/assets/657faea7-9d7f-40a9-88f7-d501e02e8a6f" />
+
+## Controls
+
+| Input | Action |
+| --- | --- |
+| **Z, Q, S, D** | Movement (Forward, Left, Backward, Right) |
+| **Mouse** | Camera Look / Orbital rotation in Inspection Mode |
+| **F** | Toggle Flashlight |
+| **E** | Interact (Open Doors / Activate Statue Lights) |
+| **I** | Enter/Exit Inspection Mode |
+| **ESC** | Exit Application |
+
+## Installation & Build
+
+1. **Prerequisites:** Ensure CMake and a C++17 compatible compiler are installed.
+2. **Clone the repository:**
 ```bash
-cd Projet
-build_run.bat
+git clone https://github.com/username/night-at-the-museum.git
+
 ```
 
-### Méthode 2 : Manuel
+
+3. **Compile:**
 ```bash
-cd Projet
-mkdir build
-cd build
+mkdir build && cd build
 cmake ..
-mingw32-make
-cd ..
-build/main.exe
+make
+
 ```
 
-## Contrôles
 
-| Touche/Action | Fonction |
-|---------------|----------|
-| W | Avancer |
-| S | Reculer |
-| A | Aller à gauche |
-| D | Aller à droite |
-| Souris | Regarder autour |
-| Molette | Zoom |
-| ESC | Quitter |
+4. **Execute:** Run the generated binary or the provided `build_run.bat` script.
 
-## Technologies Utilisées
+---
 
-- **OpenGL 3.3 Core Profile**
-- **GLFW 3.4** - Gestion de fenêtre et inputs
-- **GLM** - Mathématiques 3D
-- **GLAD** - OpenGL loader
-- **C++17**
+**Authors:** BENSAFIA Younés, MOUSTARI Abderrahmane, TADJINE Rabah Amine
+**Institution:** University of Science and Technology Houari Boumediene (USTHB)
+**Faculty:** Electronics and Computer Science (FEI)
+**Academic Year:** 2025/2026
 
-## Modèle de Phong Lighting
-
-Le projet utilise le modèle de Phong complet :
-
-```glsl
-Lighting = Ambient + Diffuse + Specular
-```
-
-- **Ambient** (0.3) : Lumière ambiante du musée
-- **Diffuse** (0.5) : Lumière directionnelle dépendante de l'angle
-- **Specular** (0.7) : Reflets brillants (exposant = 50)
-
-## Améliorations Possibles
-
-### Options à considérer :
-1. **Multiple textures par objet** (texture mapping avancé)
-2. **Skybox** pour l'environnement du musée
-3. **Collision detection** pour ne pas traverser les objets
-4. **Shadows** (shadow mapping)
-5. **Particules** pour effets atmosphériques
-6. **Sons ambiants** du musée
-7. **UI/HUD** avec informations sur les exhibits
-8. **Normal mapping** pour plus de détails
-9. **Post-processing** (bloom, SSAO)
-10. **Différents modèles OBJ** (dinosaures, armures, etc.)
-
-## Idées d'Objets à Ajouter
-
-Pour enrichir votre musée, vous pouvez ajouter :
-- **Fossiles de dinosaures** (crâne de T-Rex, squelettes)
-- **Armures médiévales** (chevalier, samurai)
-- **Statues antiques** (grecques, romaines)
-- **Artefacts égyptiens** (sarcophages, bustes)
-- **Objets d'art moderne** (sculptures abstraites)
-- **Vitrines** avec socles
-
-## Critères d'Évaluation
-
-### ✅ L'idée de la scène
-Un musée interactif est original et permet de montrer plusieurs concepts techniques tout en restant cohérent visuellement.
-
-### ✅ La qualité du rendu
-- Éclairage Phong complet
-- Textures multiples
-- Animations fluides
-- Atmosphère réaliste
-
-### ✅ Les options ajoutées
-- Système de caméra FPS sophistiqué
-- Animations variées et dynamiques
-- Lumière mobile pour ambiance vivante
-- Multiples exhibits avec comportements uniques
-
-## Auteurs
-
-Projet réalisé dans le cadre du module "Synthèse d'Image"
-
-## License
-
-Projet académique - Usage éducatif uniquement
+Would you like me to help you write the image captions or format the file pathing for your local image folder?
