@@ -3,6 +3,48 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glad/glad.h>
 #include <iostream>
+// Render the Jose (Head of an Official) statue (joseModel)
+void Room2::renderJose(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram) {
+    if (joseModel.indexCount > 0) {
+        glBindVertexArray(joseModel.VAO);
+
+        GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+        GLuint ModelID = glGetUniformLocation(shaderProgram, "Model");
+        GLuint UseTextureID = glGetUniformLocation(shaderProgram, "useTexture");
+        GLuint MaterialColorID = glGetUniformLocation(shaderProgram, "materialColor");
+
+        glm::mat4 JoseModelMatrix = glm::mat4(1.0f);
+        // Example transform: adjust as needed for your scene
+        JoseModelMatrix = glm::translate(JoseModelMatrix, glm::vec3(10.0f, 2.0f, -30.0f));
+        JoseModelMatrix = glm::rotate(JoseModelMatrix, glm::radians(-180.0f), glm::vec3(0, 1, 0));
+        JoseModelMatrix = glm::rotate(JoseModelMatrix, glm::radians(-180.0f), glm::vec3(0, 0, 1));
+        JoseModelMatrix = glm::rotate(JoseModelMatrix, glm::radians(-180.0f), glm::vec3(1, 0, 0));
+        JoseModelMatrix = glm::scale(JoseModelMatrix, glm::vec3(8.0f, 8.0f, 8.0f));
+        glm::mat4 JoseMVP = projection * view * JoseModelMatrix;
+
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &JoseMVP[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &JoseModelMatrix[0][0]);
+
+        glActiveTexture(GL_TEXTURE0);
+        GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
+        if (joseModel.textureID > 0) {
+            printf("[Jose] Binding texture ID: %u\n", joseModel.textureID);
+            glBindTexture(GL_TEXTURE_2D, joseModel.textureID);
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1);
+            glUniform3fv(MaterialColorID, 1, &joseModel.baseColor[0]);
+        } else {
+            printf("[Jose] WARNING: No texture found, using default color.\n");
+            glBindTexture(GL_TEXTURE_2D, 0);
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 0);
+            glUniform3f(MaterialColorID, 0.7f, 0.6f, 0.5f); // Default color
+        }
+
+        glDrawElements(GL_TRIANGLES, joseModel.indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
 
 using namespace glm;
 // Render the Status statue (modelStatus)
@@ -300,6 +342,7 @@ void Room2::render(const mat4& view, const mat4& projection, GLuint shaderProgra
     renderExhibits(view, projection, shaderProgram);
     renderPyramid(view, projection, shaderProgram);
     renderSphinx(view, projection, shaderProgram);
+    renderJose(view, projection, shaderProgram);
 
 }
 
@@ -483,7 +526,7 @@ void Room2::renderBuddha(const mat4& view, const mat4& projection, GLuint shader
         // No rotation: keep Buddha upright (X=0, Y=0, Z=0)
         BuddhaModel = rotate(BuddhaModel, radians(0.0f), vec3(0, 1, 0));
         BuddhaModel = rotate(BuddhaModel, radians(90.0f), vec3(0, 0, 1));
-        BuddhaModel = rotate(BuddhaModel, radians(60.0f), vec3(1, 0, 0));
+        BuddhaModel = rotate(BuddhaModel, radians(50.0f), vec3(1, 0, 0));
         BuddhaModel = scale(BuddhaModel, vec3(3.0f, 3.0f, 3.0f));
         mat4 BuddhaMVP = projection * view * BuddhaModel;
         
@@ -819,6 +862,13 @@ void Room2::renderShowcase(const mat4& view, const mat4& projection, GLuint shad
         glUniformMatrix4fv(ModelID, 1, GL_FALSE, &ShowcaseModelMatrix[0][0]);
 
         glActiveTexture(GL_TEXTURE0);
+
+        // Second Model (offset to the right)
+        mat4 ShowcaseModelMatrix2 = mat4(1.0f);
+        ShowcaseModelMatrix2 = translate(ShowcaseModelMatrix2, glm::vec3(10.0f, 1.0f, -30.0f));
+        ShowcaseModelMatrix2 = scale(ShowcaseModelMatrix2, glm::vec3(0.7f, 0.7f, 0.7f));
+        mat4 ShowcaseMVP2 = projection * view * ShowcaseModelMatrix2;
+
         GLuint TextureID = glGetUniformLocation(shaderProgram, "ourTexture");
         if (showcaseModel.textureID > 0) {
             printf("[Showcase] Binding texture ID: %u\n", showcaseModel.textureID);
@@ -834,6 +884,26 @@ void Room2::renderShowcase(const mat4& view, const mat4& projection, GLuint shad
             glUniform3f(MaterialColorID, 0.8f, 0.8f, 0.9f); // Slightly bluish glass color
         }
 
+        glDrawElements(GL_TRIANGLES, showcaseModel.indexCount, GL_UNSIGNED_INT, 0);
+
+        // Render the second showcase object at a different position
+        glBindVertexArray(showcaseModel.VAO);
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &ShowcaseMVP2[0][0]);
+        glUniformMatrix4fv(ModelID, 1, GL_FALSE, &ShowcaseModelMatrix2[0][0]);
+        // Texture and color logic (reuse from above)
+        if (showcaseModel.textureID > 0) {
+            printf("[Showcase2] Binding texture ID: %u\n", showcaseModel.textureID);
+            glBindTexture(GL_TEXTURE_2D, showcaseModel.textureID);
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 1);
+            glUniform3fv(MaterialColorID, 1, &showcaseModel.baseColor[0]);
+        } else {
+            printf("[Showcase2] WARNING: No texture found, using default color.\n");
+            glBindTexture(GL_TEXTURE_2D, 0);
+            if (TextureID != (GLuint)-1) glUniform1i(TextureID, 0);
+            glUniform1i(UseTextureID, 0);
+            glUniform3f(MaterialColorID, 0.8f, 0.8f, 0.9f);
+        }
         glDrawElements(GL_TRIANGLES, showcaseModel.indexCount, GL_UNSIGNED_INT, 0);
     }
 }

@@ -73,6 +73,7 @@ private:
     void renderSphinx(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
     void renderJose(const glm::mat4& view, const glm::mat4& projection, GLuint shaderProgram);
 
+
     // Data-driven configuration
     std::vector<ExhibitData> loadGalleryData();
     void initializeExhibits();
