@@ -43,6 +43,7 @@ Demonstration of the dynamic lighting system, showcasing the player's flashlight
 ### Inspection Mode
 
 A dedicated mode that allows users to lock onto an artifact and rotate it 360 degrees for a detailed view of its topology and textures.
+
 <img width="637" height="358" alt="image" src="https://github.com/user-attachments/assets/657faea7-9d7f-40a9-88f7-d501e02e8a6f" />
 
 ## Controls
