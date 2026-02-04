@@ -82,5 +82,5 @@ make
 
 **Authors:** BENSAFIA Younés, MOUSTARI Abderrahmane, TADJINE Rabah Amine
 **Institution:** University of Science and Technology Houari Boumediene (USTHB)
-**Faculty:** Electronics and Computer Science (FEI)
+**Faculty:** Computer Science (FI)
 **Academic Year:** 2025/2026
