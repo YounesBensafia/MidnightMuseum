@@ -1,4 +1,5 @@
 #include "MuseumScene.hpp"
+#include "core/audio_playback.hpp"
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -42,6 +43,9 @@ void MuseumScene::init() {
     
     room2 = std::make_unique<Room2>(app);
     room2->init();
+    
+    Audio_Init();
+    Audio_PlayBGM("assets/sounds/elegant-jazz-background-music-263181.mp3");
     
     initLights();
 }

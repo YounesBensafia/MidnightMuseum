@@ -24,8 +24,6 @@ Room1::~Room1() {
 
 void Room1::init() {
     printf("\n=== Loading Room 1 ===\n");
-    Audio_Init();
-    Audio_PlayBGM("assets/sounds/elegant-jazz-background-music-263181.mp3");
     carpetModel = rm.loadModel("assets/models/carpet.obj", true);
     showcaseModel = rm.loadFBXModel("assets/models/glass_showcase.glb");
     fossilsModel = rm.loadFBXModel("assets/models/fossils.glb");
