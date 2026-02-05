@@ -1,4 +1,5 @@
 #include "Application.hpp"
+#include "audio_playback.hpp"
 #include <iostream>
 
 // Initialize static members
@@ -16,6 +17,7 @@ Application::Application(const std::string& title, int width, int height)
 }
 
 Application::~Application() {
+    Audio_Shutdown();
     glfwTerminate();
 }
 
