@@ -6,7 +6,7 @@
 
 // We only include fbxload.hpp because objload.hpp is already
 // included inside ResourceManager.hpp
-#include "fbxload.hpp"
+#include "model/fbxload.hpp"
 
 GLuint ResourceManager::loadTexture(const std::string& name, const char* path) {
     if (textures.find(name) != textures.end()) {

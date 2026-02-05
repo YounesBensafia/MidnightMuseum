@@ -4,7 +4,7 @@
 #include <glad/glad.h>
 #include <vector>
 #include <string>
-#include "ResourceManager.hpp"
+#include "core/ResourceManager.hpp"
 
 class Application;
 struct GLFWwindow;

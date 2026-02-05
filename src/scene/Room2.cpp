@@ -1,5 +1,6 @@
 #include "Room2.hpp"
-#include "audio_playback.hpp"
+#include "core/Application.hpp"
+#include "core/audio_playback.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glad/glad.h>
@@ -229,15 +230,6 @@ void Room2::renderSphinx(const glm::mat4& view, const glm::mat4& projection, GLu
         glDrawElements(GL_TRIANGLES, modelSphinx.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
-// Ensure all required headers are included for OpenGL and GLM symbols
-#include "Room2.hpp"
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glad/glad.h>
-#include <iostream>
-
-using namespace glm;
-
 void Room2::renderTorso(const mat4& view, const mat4& projection, GLuint shaderProgram) {
     if (torsoModel.indexCount > 0) {
         printf("[Torso] VAO=%u, indexCount=%zu, textureID=%u\n", torsoModel.VAO, torsoModel.indexCount, torsoModel.textureID);
@@ -278,14 +270,6 @@ void Room2::renderTorso(const mat4& view, const mat4& projection, GLuint shaderP
         glDrawElements(GL_TRIANGLES, torsoModel.indexCount, GL_UNSIGNED_INT, 0);
     }
 }
-#include "Room2.hpp"
-#include "Application.hpp"
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <iostream>
-
-using namespace glm;
-
 Room2::Room2(Application& app) : app(app), rm(ResourceManager::getInstance()) {
 }
 

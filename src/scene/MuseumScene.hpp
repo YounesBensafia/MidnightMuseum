@@ -1,8 +1,8 @@
 #ifndef MUSEUM_SCENE_HPP
 #define MUSEUM_SCENE_HPP
 
-#include "Application.hpp"
-#include "ResourceManager.hpp"
+#include "core/Application.hpp"
+#include "core/ResourceManager.hpp"
 #include "Room1.hpp"
 #include "Hallway.hpp"
 #include "Room2.hpp"

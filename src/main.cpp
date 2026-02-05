@@ -1,11 +1,11 @@
 #include <iostream>
-#include "Application.hpp"
-#include "MuseumScene.hpp"
+#include "core/Application.hpp"
+#include "scene/MuseumScene.hpp"
 
-// This project is split into 3 parts for collaboration:
-// 1. Core Engine (Application.cpp/hpp): Main loop, Window, Input.
-// 2. Asset Management (ResourceManager.cpp/hpp): Loading Textures, Models, Shaders.
-// 3. Gameplay/Scene (MuseumScene.cpp/hpp): The specific museum logic and rendering.
+// This project is split into modules for collaboration:
+// 1. core/     - Engine core (Application, ResourceManager, shader, audio)
+// 2. model/    - Model loaders (obj, fbx)
+// 3. scene/    - Scene/room logic (Room1, Room2, Hallway, MuseumScene)
 
 int main()
 {

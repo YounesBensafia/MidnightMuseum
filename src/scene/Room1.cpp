@@ -1,6 +1,6 @@
 #include "Room1.hpp"
-#include "Application.hpp"
-#include "audio_playback.hpp"
+#include "core/Application.hpp"
+#include "core/audio_playback.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>

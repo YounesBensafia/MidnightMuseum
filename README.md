@@ -57,26 +57,57 @@ A dedicated mode that allows users to lock onto an artifact and rotate it 360 de
 | **I** | Enter/Exit Inspection Mode |
 | **ESC** | Exit Application |
 
-## Installation & Build
+## Project Structure
 
-1. **Prerequisites:** Ensure CMake and a C++17 compatible compiler are installed.
-2. **Clone the repository:**
+```
+.
+├── assets/                  # Game assets (models, textures, sounds, shaders)
+├── external/                # Third-party headers and sources
+│   ├── glad/                # OpenGL loader (generated)
+│   ├── KHR/                 # Khronos platform header
+│   ├── json.hpp
+│   ├── miniaudio.h
+│   ├── stb_image.h
+│   └── tiny_gltf.h
+├── libs/                    # Third-party libraries (glm, mingw64)
+├── src/                     # Source code organized by module
+│   ├── core/                # Engine core (Application, ResourceManager, shader, audio)
+│   ├── model/               # Model loaders (obj, fbx)
+│   ├── scene/               # Scene/room logic (Room1, Room2, Hallway, MuseumScene)
+│   └── main.cpp             # Entry point
+├── docs/
+├── CMakeLists.txt
+└── README.md
+```
+
+## How to Run
+
+### Prerequisites
+
+- **CMake** ≥ 3.15
+- C++17 compatible compiler (GCC, Clang, MSVC)
+- **OpenGL** 3.3+ drivers
+- **GLFW 3**
+- **Assimp** 6.x (for GLB/FBX model loading)
+
+### Build & Run
+
 ```bash
+# 1. Clone the repository
 git clone https://github.com/YounesBensafia/MidnightMuseum.git
+cd MidnightMuseum
 
+# 2. Configure
+cmake -S . -B build
+
+# 3. Build
+cmake --build build
+
+# 4. Run
+./build/main        # Linux / macOS
+# or .\build\main.exe  # Windows (cmd)
+# or ./build/main.exe  # Windows (Git Bash / PowerShell)
 ```
-
-
-3. **Compile:**
-```bash
-mkdir build && cd build
-cmake ..
-make
-
-```
-
-
-4. **Execute:** Run the generated binary or the provided `build_run.bat` script.
 
 ---
 

@@ -6,8 +6,8 @@
 #include <map>
 #include <vector>
 #include <glm/glm.hpp>
-#include "objload.hpp"
-#include "fbxload.hpp"
+#include "model/objload.hpp"
+#include "model/fbxload.hpp"
 
 // Definitions
 struct Vertex {

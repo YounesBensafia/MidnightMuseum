@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 #include <glad/glad.h>
-#include "ResourceManager.hpp"
+#include "core/ResourceManager.hpp"
 
 class Application;
 struct GLFWwindow;
